@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'programmation_neons.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
-  State<MyApp> createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: const HomePage(), // Séparer le MaterialApp de la page
+    );
+  }
 }
 
-class _MyAppState extends State<MyApp> {
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   bool switchGeneral = false;
   bool switch1 = false;
   bool switch2 = false;
@@ -250,7 +263,6 @@ class _MyAppState extends State<MyApp> {
               padding: EdgeInsets.all(10.0),
               child: Column(
                 children: [
-                  // Alimentation générale moteurs en haut
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -268,6 +280,17 @@ class _MyAppState extends State<MyApp> {
                             WidgetState.selected: Colors.amber,
                           },
                         ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ProgrammationNeons(),
+                            ),
+                          );
+                        },
+                        child: const Text('Choix'),
                       ),
                     ],
                   ),
