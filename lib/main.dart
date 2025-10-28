@@ -35,7 +35,7 @@ class HomePage extends StatelessWidget {
               "Horloge SNCB",
               style: GoogleFonts.alfaSlabOne(
                 color: Theme.of(context).primaryColor,
-                fontSize: 23,
+                fontSize: 25,
               ),
             ),
           ),
@@ -43,6 +43,15 @@ class HomePage extends StatelessWidget {
           const HorlogesBloc(),
           SizedBox(height: 10),
           const NeonsBloc(),
+          SizedBox(height: 30),
+          Center(
+            child: Column(
+              children: [
+                Icon(Icons.grass),
+                Text("Projet mené à bien par Basile et Quentin "),
+              ],
+            ),
+          ),
         ],
       ),
     );

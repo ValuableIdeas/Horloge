@@ -20,112 +20,100 @@ class NeonsBloc extends StatelessWidget {
           padding: EdgeInsets.all(10.0),
           child: Column(
             children: [
+              // Titre
               const Text(
                 'NÉONS',
-                style: TextStyle(color: Colors.white, fontSize: 18),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 10),
+
+              // ToggleButtons : Off / On / Prog
+              ToggleButtons(
+                borderRadius: const BorderRadius.all(Radius.circular(8)),
+                selectedBorderColor: Colors.white,
+                selectedColor: primaryColor,
+                fillColor: Colors.white,
+                color: Colors.white,
+                borderColor: Colors.white70,
+                constraints: const BoxConstraints(
+                  minHeight: 40.0,
+                  minWidth: 80.0,
+                ),
+                isSelected: [
+                  provider.modeNeons == 0,
+                  provider.modeNeons == 1,
+                  provider.modeNeons == 2,
+                ],
+                onPressed: (int index) {
+                  provider.setModeNeons(index);
+                },
+                children: const [
+                  Text('OFF'),
+                  Text('ON'),
+                  Icon(Icons.calendar_month),
+                ],
               ),
 
               SizedBox(height: 10),
-              // --- Coller dans Column(children: [ ... ici ... ]) ---
-              StatefulBuilder(
-                builder: (BuildContext context, StateSetter setState) {
-                  // état local (sera recréé si le parent rebuild)
-                  final List<bool> _selectedModes = <bool>[true, false, false];
 
-                  return ToggleButtons(
-                    borderRadius: const BorderRadius.all(Radius.circular(8)),
-                    selectedBorderColor: Theme.of(context).colorScheme.primary,
-                    selectedColor: Colors.white,
-                    fillColor: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.6),
-                    color: Theme.of(context).colorScheme.onSurface,
-                    constraints: const BoxConstraints(
-                      minHeight: 40.0,
-                      minWidth: 80.0,
+              // Bouton de programmation
+              ElevatedButton(
+                onPressed: () {
+                  print('Bouton cliqué - Navigation vers programmation');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProgrammationNeons(),
                     ),
-                    isSelected: _selectedModes,
-                    onPressed: (int index) {
-                      setState(() {
-                        for (int i = 0; i < _selectedModes.length; i++) {
-                          _selectedModes[i] = i == index;
-                        }
-                      });
-                    },
-                    children: const [Text('Off'), Text('On'), Text('Prog')],
                   );
                 },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: primaryColor,
+                ),
+                child: const Text('Gérer les plages horaires'),
               ),
-              SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Néons',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  SizedBox(width: 10),
 
-                  // Switch pour mode on/off (0 ou 1)
-                  Switch(
-                    value: provider.modeNeons > 0,
-                    onChanged: (v) => provider.setModeNeons(v ? 1 : 0),
-                    trackColor: WidgetStateProperty<Color?>.fromMap(
-                      <WidgetStatesConstraint, Color>{
-                        WidgetState.selected: Colors.amber,
-                      },
-                    ),
+              SizedBox(height: 10),
+
+              // Switch individuels des néons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Column(
+                    children: [
+                      Text(
+                        'Néon 1',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      Switch(
+                        value: provider.marcheNeon1,
+                        onChanged: (v) => provider.setMarcheNeon1(v),
+                        activeThumbColor: Colors.amber,
+                        activeTrackColor: Colors.amber.withOpacity(0.5),
+                      ),
+                    ],
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProgrammationNeons(),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      provider.modeNeons == 2 ? 'Programmé' : 'Programmer',
-                    ),
+                  Column(
+                    children: [
+                      Text(
+                        'Néon 2',
+                        style: TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      Switch(
+                        value: provider.marcheNeon2,
+                        onChanged: (v) => provider.setMarcheNeon2(v),
+                        activeThumbColor: Colors.amber,
+                        activeTrackColor: Colors.amber.withOpacity(0.5),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              // Contrôles individuels des néons (seulement si mode > 0)
-              if (provider.modeNeons > 0) ...[
-                SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Column(
-                      children: [
-                        Text(
-                          'Néon 1',
-                          style: TextStyle(color: Colors.white, fontSize: 14),
-                        ),
-                        Switch(
-                          value: provider.marcheNeon1,
-                          onChanged: (v) => provider.setMarcheNeon1(v),
-                          activeThumbColor: Colors.amber,
-                        ),
-                      ],
-                    ),
-                    Column(
-                      children: [
-                        Text(
-                          'Néon 2',
-                          style: TextStyle(color: Colors.white, fontSize: 14),
-                        ),
-                        Switch(
-                          value: provider.marcheNeon2,
-                          onChanged: (v) => provider.setMarcheNeon2(v),
-                          activeThumbColor: Colors.amber,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
             ],
           ),
         );
