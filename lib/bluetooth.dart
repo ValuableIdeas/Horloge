@@ -1,12 +1,26 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 StreamSubscription<BluetoothConnectionState>? disconnectListener;
+StreamSubscription<List<int>>? receiveListener;
 
 Future<BluetoothDevice?> getDevice() async {
-  final completer = Completer<BluetoothDevice?>();
+  // Enable bluetoot
+  var state = await FlutterBluePlus.adapterState.first;
 
+  // If it's off, prompt to enable
+  if (state == BluetoothAdapterState.off) {
+    // Ask user to turn it on (Android only)
+    await FlutterBluePlus.turnOn();
+    // Wait for state to update
+    await FlutterBluePlus.adapterState.firstWhere(
+      (s) => s == BluetoothAdapterState.on,
+    );
+  }
+
+  final completer = Completer<BluetoothDevice?>();
   // Listens for scan result
   var subscription = FlutterBluePlus.onScanResults.listen((results) {
     if (results.isNotEmpty) {
@@ -54,6 +68,16 @@ Future<void> connect(BluetoothDevice? device) async {
   await device.connectionState
       .where((val) => val == BluetoothConnectionState.connected)
       .first;
+
+  await Future.delayed(new Duration(seconds: 3));
+
+  // Connect again (it's kinda bugged)
+  await device.connect(license: License.free, timeout: Duration(seconds: 15));
+
+  // Wait for connection
+  await device.connectionState
+      .where((val) => val == BluetoothConnectionState.connected)
+      .first;
 }
 
 Future<void> disconnect(BluetoothDevice? device) async {
@@ -93,7 +117,10 @@ void addDisconnectListener(BluetoothDevice? device, Function listener) {
   });
 }
 
-Future<void> recieve(BluetoothDevice? device) async {
+Future<void> addRecieveListener(
+  BluetoothDevice? device,
+  Function listener,
+) async {
   // Check if device exists
   if (device == null) {
     print("Device not found");
@@ -105,17 +132,28 @@ Future<void> recieve(BluetoothDevice? device) async {
     return;
   }
   // Get services
-  List<BluetoothService> services = await device.discoverServices();
-  services.forEach((service) async {
-    // Reads all characteristics
-    var characteristics = service.characteristics;
-    for (BluetoothCharacteristic c in characteristics) {
-      if (c.properties.read) {
-        List<int> value = await c.read();
-        print(value);
-      }
-    }
-  });
+  final services = await device.discoverServices();
+  // Find UART service
+  final uartService = services.firstWhere(
+    (s) => s.uuid.toString().toLowerCase().contains('ffe0'),
+  );
+  // Find main characteristic
+  final txrxChar = uartService.characteristics.firstWhere(
+    (c) => c.uuid.toString().toLowerCase().contains('ffe1'),
+  );
+
+  // Enable notifications (to receive data)
+  await txrxChar.setNotifyValue(true);
+
+  // Remove potentially existing listener
+  StreamSubscription<List<int>>? receiveListen = receiveListener;
+  if (receiveListen != null) {
+    receiveListen.cancel();
+  }
+  // Listen for data coming from the module
+  receiveListener = txrxChar.onValueReceived.listen(
+    listener as void Function(List<int> event)?,
+  );
 }
 
 Future<void> send(BluetoothDevice? device, List<int> message) async {
