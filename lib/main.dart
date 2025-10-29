@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:horloge/widgets/interrupteur_general.dart';
 import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
 import 'theme.dart';
@@ -39,6 +40,8 @@ class HomePage extends StatelessWidget {
               ),
             ),
           ),
+          SizedBox(height: 10),
+          const InterrupteurGeneralBloc(),
           SizedBox(height: 10),
           const HorlogesBloc(),
           SizedBox(height: 10),

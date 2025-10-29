@@ -1,132 +1,120 @@
 import 'package:flutter/foundation.dart';
 
 class AppProvider extends ChangeNotifier {
-  // Variables horloges (pour fonction Bluetooth ID 2)
-  bool _marcheHorloge1 = false;
-  bool _marcheHorloge2 = false;
-  bool _marcheTrotteuse1 = false;
-  bool _marcheTrotteuse2 = false;
+  // Clock variables (for Bluetooth function ID 2)
+  bool _mainSwitchOn = false;
+  bool _clock1Running = false;
+  bool _clock2Running = false;
+  bool _secondHand1Running = false;
+  bool _secondHand2Running = false;
 
-  // Variables néons (pour fonction Bluetooth ID 1)
-  int _modeNeons = 0; // 0: off, 1: on, 2: programmation
-  bool _marcheNeon1 = false;
-  bool _marcheNeon2 = false;
+  // Neon variables (for Bluetooth function ID 1)
+  int _neonMode = 0; // 0: off, 1: on, 2: programming
+  bool _neon1Running = false;
+  bool _neon2Running = false;
 
-  // Programmation néons (pour fonction Bluetooth ID 3)
-  // Liste de plages horaires : chaque plage = [jourHeureDebut, minuteDebut, jourHeureFin, minuteFin]
-  List<List<int>> _programmationNeons = [];
+  // Neon programming (for Bluetooth function ID 3)
+  // List of time slots: each slot = [dayHourStart, minuteStart, dayHourEnd, minuteEnd]
+  List<List<int>> _neonSchedule = [];
 
-  // Variables pour remise à l'heure (pour fonction Bluetooth ID 50)
-  DateTime _dateTimeHorloge = DateTime.now();
+  // Variables for time setting (for Bluetooth function ID 50)
+  DateTime _clockDateTime = DateTime.now();
 
-  // Variable pour l'alimentation générale (non envoyée par Bluetooth, juste pour l'UI)
-  bool _alimentationGenerale = false;
+  // Getters
+  bool get mainSwitchOn => _mainSwitchOn;
 
-  // Getters - Horloges
-  bool get marcheHorloge1 => _marcheHorloge1;
-  bool get marcheHorloge2 => _marcheHorloge2;
-  bool get marcheTrotteuse1 => _marcheTrotteuse1;
-  bool get marcheTrotteuse2 => _marcheTrotteuse2;
-  bool get alimentationGenerale => _alimentationGenerale;
+  // Getters - Clocks
+  bool get clock1Running => _clock1Running;
+  bool get clock2Running => _clock2Running;
+  bool get secondHand1Running => _secondHand1Running;
+  bool get secondHand2Running => _secondHand2Running;
 
-  // Getters - Néons
-  int get modeNeons => _modeNeons;
-  bool get marcheNeon1 => _marcheNeon1;
-  bool get marcheNeon2 => _marcheNeon2;
-  List<List<int>> get programmationNeons => _programmationNeons;
+  // Getters - Neons
+  int get neonMode => _neonMode;
+  bool get neon1Running => _neon1Running;
+  bool get neon2Running => _neon2Running;
+  List<List<int>> get neonSchedule => _neonSchedule;
 
-  // Getters - Date/Heure
-  DateTime get dateTimeHorloge => _dateTimeHorloge;
+  // Getters - Date/Time
+  DateTime get clockDateTime => _clockDateTime;
 
-  // Setters - Alimentation générale
-  void setAlimentationGenerale(bool value) {
-    _alimentationGenerale = value;
-    // Si on coupe l'alimentation, on coupe tout
+  // Setters
+  void setMainSwitchOn(bool value) {
+    _mainSwitchOn = value;
+    notifyListeners();
+  }
+
+  // Setters - Clocks
+  void setClock1Running(bool value) {
+    _clock1Running = value;
     if (!value) {
-      _marcheHorloge1 = false;
-      _marcheHorloge2 = false;
-      _marcheTrotteuse1 = false;
-      _marcheTrotteuse2 = false;
+      _secondHand1Running = false;
     }
     notifyListeners();
   }
 
-  // Setters - Horloges
-  void setMarcheHorloge1(bool value) {
-    _marcheHorloge1 = value;
+  void setClock2Running(bool value) {
+    _clock2Running = value;
     if (!value) {
-      _marcheTrotteuse1 = false;
+      _secondHand2Running = false;
     }
     notifyListeners();
   }
 
-  void setMarcheHorloge2(bool value) {
-    _marcheHorloge2 = value;
-    if (!value) {
-      _marcheTrotteuse2 = false;
-    }
+  void setSecondHand1Running(bool value) {
+    _secondHand1Running = value;
     notifyListeners();
   }
 
-  void setMarcheTrotteuse1(bool value) {
-    _marcheTrotteuse1 = value;
+  void setSecondHand2Running(bool value) {
+    _secondHand2Running = value;
     notifyListeners();
   }
 
-  void setMarcheTrotteuse2(bool value) {
-    _marcheTrotteuse2 = value;
-    notifyListeners();
-  }
-
-  // Setters - Néons
-  void setModeNeons(int value) {
+  // Setters - Neons
+  void setNeonMode(int value) {
     if (value >= 0 && value <= 2) {
-      _modeNeons = value;
+      _neonMode = value;
       notifyListeners();
     }
   }
 
-  void setMarcheNeon1(bool value) {
-    _marcheNeon1 = value;
+  void setNeon1Running(bool value) {
+    _neon1Running = value;
     notifyListeners();
   }
 
-  void setMarcheNeon2(bool value) {
-    _marcheNeon2 = value;
+  void setNeon2Running(bool value) {
+    _neon2Running = value;
     notifyListeners();
   }
 
-  // Setters - Programmation néons
-  void ajouterPlageNeons(
-    int jourHeureDebut,
-    int minuteDebut,
-    int jourHeureFin,
-    int minuteFin,
+  // Setters - Neon programming
+  void addNeonTimeSlot(
+    int dayHourStart,
+    int minuteStart,
+    int dayHourEnd,
+    int minuteEnd,
   ) {
-    _programmationNeons.add([
-      jourHeureDebut,
-      minuteDebut,
-      jourHeureFin,
-      minuteFin,
-    ]);
+    _neonSchedule.add([dayHourStart, minuteStart, dayHourEnd, minuteEnd]);
     notifyListeners();
   }
 
-  void supprimerPlageNeons(int index) {
-    if (index >= 0 && index < _programmationNeons.length) {
-      _programmationNeons.removeAt(index);
+  void removeNeonTimeSlot(int index) {
+    if (index >= 0 && index < _neonSchedule.length) {
+      _neonSchedule.removeAt(index);
       notifyListeners();
     }
   }
 
-  void viderProgrammationNeons() {
-    _programmationNeons.clear();
+  void clearNeonSchedule() {
+    _neonSchedule.clear();
     notifyListeners();
   }
 
-  // Setter - Date/Heure
-  void setDateTimeHorloge(DateTime dateTime) {
-    _dateTimeHorloge = dateTime;
+  // Setter - Date/Time
+  void setClockDateTime(DateTime dateTime) {
+    _clockDateTime = dateTime;
     notifyListeners();
   }
 }

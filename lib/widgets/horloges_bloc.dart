@@ -19,22 +19,21 @@ class HorlogesBloc extends StatelessWidget {
           padding: EdgeInsets.all(10.0),
           child: Column(
             children: [
-              // Alimentation générale moteurs en haut
+              // Titre uniquement
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
                     'HORLOGES',
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  SizedBox(width: 10),
-                  Switch(
-                    value: provider.alimentationGenerale,
-                    onChanged: (v) => provider.setAlimentationGenerale(v),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 10),
               // Horloges
               Row(
                 children: [
@@ -60,10 +59,8 @@ class HorlogesBloc extends StatelessWidget {
                             ),
                           ),
                           Switch(
-                            value: provider.marcheHorloge1,
-                            onChanged: provider.alimentationGenerale
-                                ? (v) => provider.setMarcheHorloge1(v)
-                                : null,
+                            value: provider.clock1Running,
+                            onChanged: (v) => provider.setClock1Running(v),
                           ),
                           SizedBox(height: 10),
                           // Trotteuse 1
@@ -84,11 +81,9 @@ class HorlogesBloc extends StatelessWidget {
                                   ),
                                 ),
                                 Switch(
-                                  value: provider.marcheTrotteuse1,
-                                  onChanged:
-                                      (provider.alimentationGenerale &&
-                                          provider.marcheHorloge1)
-                                      ? (v) => provider.setMarcheTrotteuse1(v)
+                                  value: provider.secondHand1Running,
+                                  onChanged: provider.clock1Running
+                                      ? (v) => provider.setSecondHand1Running(v)
                                       : null,
                                 ),
                               ],
@@ -120,10 +115,8 @@ class HorlogesBloc extends StatelessWidget {
                             ),
                           ),
                           Switch(
-                            value: provider.marcheHorloge2,
-                            onChanged: provider.alimentationGenerale
-                                ? (v) => provider.setMarcheHorloge2(v)
-                                : null,
+                            value: provider.clock2Running,
+                            onChanged: (v) => provider.setClock2Running(v),
                           ),
                           SizedBox(height: 10),
                           // Trotteuse 2
@@ -144,11 +137,9 @@ class HorlogesBloc extends StatelessWidget {
                                   ),
                                 ),
                                 Switch(
-                                  value: provider.marcheTrotteuse2,
-                                  onChanged:
-                                      (provider.alimentationGenerale &&
-                                          provider.marcheHorloge2)
-                                      ? (v) => provider.setMarcheTrotteuse2(v)
+                                  value: provider.secondHand2Running,
+                                  onChanged: provider.clock2Running
+                                      ? (v) => provider.setSecondHand2Running(v)
                                       : null,
                                 ),
                               ],

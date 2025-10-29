@@ -75,7 +75,7 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     int jourHeureDebut = _jourDebut! * 24 + _heureDebut;
     int jourHeureFin = _jourFin! * 24 + _heureFin;
 
-    provider.ajouterPlageNeons(
+    provider.addNeonTimeSlot(
       jourHeureDebut,
       _minuteDebut,
       jourHeureFin,
@@ -403,7 +403,7 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
 
               // Récapitulatif des plages (scrollable)
               Expanded(
-                child: provider.programmationNeons.isEmpty
+                child: provider.neonSchedule.isEmpty
                     ? const Center(
                         child: Text(
                           'Aucune plage programmée',
@@ -428,14 +428,14 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                               ),
-                              itemCount: provider.programmationNeons.length,
+                              itemCount: provider.neonSchedule.length,
                               itemBuilder: (context, index) {
                                 return Card(
                                   margin: const EdgeInsets.only(bottom: 8),
                                   child: ListTile(
                                     title: Text(
                                       _formatPlage(
-                                        provider.programmationNeons[index],
+                                        provider.neonSchedule[index],
                                       ),
                                     ),
                                     trailing: IconButton(
@@ -444,7 +444,7 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
                                         color: Theme.of(context).primaryColor,
                                       ),
                                       onPressed: () {
-                                        provider.supprimerPlageNeons(index);
+                                        provider.removeNeonTimeSlot(index);
                                       },
                                     ),
                                   ),

@@ -44,12 +44,12 @@ class NeonsBloc extends StatelessWidget {
                   minWidth: 80.0,
                 ),
                 isSelected: [
-                  provider.modeNeons == 0,
-                  provider.modeNeons == 1,
-                  provider.modeNeons == 2,
+                  provider.neonMode == 0,
+                  provider.neonMode == 1,
+                  provider.neonMode == 2,
                 ],
                 onPressed: (int index) {
-                  provider.setModeNeons(index);
+                  provider.setNeonMode(index);
                 },
                 children: const [
                   Text('OFF'),
@@ -91,8 +91,8 @@ class NeonsBloc extends StatelessWidget {
                         style: TextStyle(color: Colors.white, fontSize: 14),
                       ),
                       Switch(
-                        value: provider.marcheNeon1,
-                        onChanged: (v) => provider.setMarcheNeon1(v),
+                        value: provider.neon1Running,
+                        onChanged: (v) => provider.setNeon1Running(v),
                         activeThumbColor: Colors.amber,
                         activeTrackColor: Colors.amber.withOpacity(0.5),
                       ),
@@ -105,8 +105,8 @@ class NeonsBloc extends StatelessWidget {
                         style: TextStyle(color: Colors.white, fontSize: 14),
                       ),
                       Switch(
-                        value: provider.marcheNeon2,
-                        onChanged: (v) => provider.setMarcheNeon2(v),
+                        value: provider.neon2Running,
+                        onChanged: (v) => provider.setNeon2Running(v),
                         activeThumbColor: Colors.amber,
                         activeTrackColor: Colors.amber.withOpacity(0.5),
                       ),
