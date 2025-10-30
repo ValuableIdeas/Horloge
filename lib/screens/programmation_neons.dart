@@ -131,7 +131,7 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
                 ),
               ),
             ),
-            // Liste dé
+            // Liste déroulante
             ListWheelScrollView.useDelegate(
               controller: controller,
               itemExtent: 40,
@@ -219,245 +219,261 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Programmation'),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-      ),
-      body: Consumer<AppProvider>(
-        builder: (context, provider, child) {
-          return Column(
-            children: [
-              // Sélecteur de plage horaire (toujours visible)
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: primaryColor, width: 2),
-                ),
-                child: Column(
-                  children: [
-                    // Titre avec bouton +
-                    Stack(
-                      children: [
-                        const Center(
-                          child: Text(
-                            'Nouvelle plage',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: -10,
-                          top: -10,
-                          child: IconButton(
-                            onPressed: () => _validerPlage(provider),
-                            icon: const Icon(Icons.add_circle),
-                            color: primaryColor,
-                            iconSize: 32,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Ligne des heures/minutes
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Début
-                        Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: primaryColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'DÉBUT',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 15),
-                            Row(
-                              children: [
-                                _buildTimeWheel(
-                                  controller: _heureDebutController,
-                                  maxValue: 23,
-                                  onChanged: (index) {
-                                    setState(() => _heureDebut = index);
-                                  },
-                                ),
-                                const Text(
-                                  ':',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                _buildTimeWheel(
-                                  controller: _minuteDebutController,
-                                  maxValue: 59,
-                                  onChanged: (index) {
-                                    setState(() => _minuteDebut = index);
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 15),
-                            _buildJourSelector(
-                              _jourDebut,
-                              (index) => setState(() => _jourDebut = index),
-                              _jourDebutController,
-                            ),
-                          ],
-                        ),
-
-                        // Séparateur
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 5),
-                          child: Text(
-                            '-',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-
-                        // Fin
-                        Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: primaryColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Text(
-                                'FIN',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 15),
-                            Row(
-                              children: [
-                                _buildTimeWheel(
-                                  controller: _heureFinController,
-                                  maxValue: 23,
-                                  onChanged: (index) {
-                                    setState(() => _heureFin = index);
-                                  },
-                                ),
-                                const Text(
-                                  ':',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                _buildTimeWheel(
-                                  controller: _minuteFinController,
-                                  maxValue: 59,
-                                  onChanged: (index) {
-                                    setState(() => _minuteFin = index);
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 15),
-                            _buildJourSelector(
-                              _jourFin,
-                              (index) => setState(() => _jourFin = index),
-                              _jourFinController,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // Récapitulatif des plages (scrollable)
-              Expanded(
-                child: provider.neonSchedule.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Aucune plage programmée',
-                          style: TextStyle(color: Colors.grey, fontSize: 16),
-                        ),
-                      )
-                    : Column(
+    return WillPopScope(
+      // Intercepter le retour arrière pour envoyer la programmation
+      onWillPop: () async {
+        final provider = Provider.of<AppProvider>(context, listen: false);
+        provider.sendNeonSchedule();
+        return true; // Autoriser le retour
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Programmation'),
+          backgroundColor: primaryColor,
+          foregroundColor: Colors.white,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back),
+            onPressed: () {
+              final provider = Provider.of<AppProvider>(context, listen: false);
+              provider.sendNeonSchedule();
+              Navigator.of(context).pop();
+            },
+          ),
+        ),
+        body: Consumer<AppProvider>(
+          builder: (context, provider, child) {
+            return Column(
+              children: [
+                // Sélecteur de plage horaire (toujours visible)
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: primaryColor, width: 2),
+                  ),
+                  child: Column(
+                    children: [
+                      // Titre avec bouton +
+                      Stack(
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16),
+                          const Center(
                             child: Text(
-                              'Plages programmées',
+                              'Nouvelle plage',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              itemCount: provider.neonSchedule.length,
-                              itemBuilder: (context, index) {
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  child: ListTile(
-                                    title: Text(
-                                      _formatPlage(
-                                        provider.neonSchedule[index],
-                                      ),
-                                    ),
-                                    trailing: IconButton(
-                                      icon: Icon(
-                                        Icons.close,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                      onPressed: () {
-                                        provider.removeNeonTimeSlot(index);
-                                      },
-                                    ),
-                                  ),
-                                );
-                              },
+                          Positioned(
+                            right: -10,
+                            top: -10,
+                            child: IconButton(
+                              onPressed: () => _validerPlage(provider),
+                              icon: const Icon(Icons.add_circle),
+                              color: primaryColor,
+                              iconSize: 32,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
                           ),
                         ],
                       ),
-              ),
-            ],
-          );
-        },
+                      const SizedBox(height: 10),
+
+                      // Ligne des heures/minutes
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Début
+                          Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: primaryColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'DÉBUT',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              Row(
+                                children: [
+                                  _buildTimeWheel(
+                                    controller: _heureDebutController,
+                                    maxValue: 23,
+                                    onChanged: (index) {
+                                      setState(() => _heureDebut = index);
+                                    },
+                                  ),
+                                  const Text(
+                                    ':',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  _buildTimeWheel(
+                                    controller: _minuteDebutController,
+                                    maxValue: 59,
+                                    onChanged: (index) {
+                                      setState(() => _minuteDebut = index);
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 15),
+                              _buildJourSelector(
+                                _jourDebut,
+                                (index) => setState(() => _jourDebut = index),
+                                _jourDebutController,
+                              ),
+                            ],
+                          ),
+
+                          // Séparateur
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 5),
+                            child: Text(
+                              '-',
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+
+                          // Fin
+                          Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: primaryColor,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'FIN',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 15),
+                              Row(
+                                children: [
+                                  _buildTimeWheel(
+                                    controller: _heureFinController,
+                                    maxValue: 23,
+                                    onChanged: (index) {
+                                      setState(() => _heureFin = index);
+                                    },
+                                  ),
+                                  const Text(
+                                    ':',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  _buildTimeWheel(
+                                    controller: _minuteFinController,
+                                    maxValue: 59,
+                                    onChanged: (index) {
+                                      setState(() => _minuteFin = index);
+                                    },
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 15),
+                              _buildJourSelector(
+                                _jourFin,
+                                (index) => setState(() => _jourFin = index),
+                                _jourFinController,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Récapitulatif des plages (scrollable)
+                Expanded(
+                  child: provider.neonSchedule.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Aucune plage programmée',
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                          ),
+                        )
+                      : Column(
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'Plages programmées',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: ListView.builder(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                itemCount: provider.neonSchedule.length,
+                                itemBuilder: (context, index) {
+                                  return Card(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    child: ListTile(
+                                      title: Text(
+                                        _formatPlage(
+                                          provider.neonSchedule[index],
+                                        ),
+                                      ),
+                                      trailing: IconButton(
+                                        icon: Icon(
+                                          Icons.close,
+                                          color: Theme.of(context).primaryColor,
+                                        ),
+                                        onPressed: () {
+                                          provider.removeNeonTimeSlot(index);
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

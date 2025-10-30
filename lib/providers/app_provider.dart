@@ -1,6 +1,11 @@
 import 'package:flutter/foundation.dart';
+import '../services/bluetooth_service.dart';
+import '../services/bluetooth_message_builder.dart';
 
 class AppProvider extends ChangeNotifier {
+  // Service Bluetooth
+  final BluetoothService _bluetoothService = BluetoothService();
+
   // Clock variables (for Bluetooth function ID 2)
   bool _mainSwitchOn = false;
   bool _clock1Running = false;
@@ -20,8 +25,16 @@ class AppProvider extends ChangeNotifier {
   // Variables for time setting (for Bluetooth function ID 50)
   DateTime _clockDateTime = DateTime.now();
 
+  // État de connexion
+  bool _isConnecting = false;
+  String _connectionStatus = "Déconnecté";
+
   // Getters
   bool get mainSwitchOn => _mainSwitchOn;
+  BluetoothService get bluetoothService => _bluetoothService;
+  bool get isConnected => _bluetoothService.isConnected;
+  bool get isConnecting => _isConnecting;
+  String get connectionStatus => _connectionStatus;
 
   // Getters - Clocks
   bool get clock1Running => _clock1Running;
@@ -38,6 +51,93 @@ class AppProvider extends ChangeNotifier {
   // Getters - Date/Time
   DateTime get clockDateTime => _clockDateTime;
 
+  AppProvider() {
+    _setupBluetoothCallbacks();
+  }
+
+  /// Configuration des callbacks Bluetooth
+  void _setupBluetoothCallbacks() {
+    _bluetoothService.onConnected = () {
+      _connectionStatus = "Connecté";
+      notifyListeners();
+      // Envoi de la remise à l'heure lors de la connexion
+      _sendTimeSet();
+    };
+
+    _bluetoothService.onDisconnected = () {
+      _connectionStatus = "Déconnecté";
+      notifyListeners();
+    };
+
+    _bluetoothService.onError = (error) {
+      _connectionStatus = "Erreur: $error";
+      notifyListeners();
+    };
+  }
+
+  /// Connexion au dispositif Bluetooth
+  Future<void> connectBluetooth() async {
+    _isConnecting = true;
+    _connectionStatus = "Connexion en cours...";
+    notifyListeners();
+
+    bool success = await _bluetoothService.connectToDevice();
+
+    _isConnecting = false;
+    if (!success) {
+      _connectionStatus = "Échec de connexion";
+    }
+    notifyListeners();
+  }
+
+  /// Déconnexion du dispositif Bluetooth
+  Future<void> disconnectBluetooth() async {
+    await _bluetoothService.disconnect();
+    _connectionStatus = "Déconnecté";
+    notifyListeners();
+  }
+
+  /// Envoi de la remise à l'heure (appelé automatiquement lors de la connexion)
+  void _sendTimeSet() {
+    final message = BluetoothMessageBuilder.buildTimeSetMessage(DateTime.now());
+    _bluetoothService.sendMessage(message);
+  }
+
+  /// Envoi de la commande de gestion des horloges
+  void _sendClockControl() {
+    if (!_bluetoothService.isConnected) return;
+
+    final message = BluetoothMessageBuilder.buildClockControlMessage(
+      clock1Running: _clock1Running,
+      clock2Running: _clock2Running,
+      secondHand1Running: _secondHand1Running,
+      secondHand2Running: _secondHand2Running,
+    );
+    _bluetoothService.sendMessage(message);
+  }
+
+  /// Envoi de la commande de gestion des néons
+  void _sendNeonControl() {
+    if (!_bluetoothService.isConnected) return;
+
+    final message = BluetoothMessageBuilder.buildNeonControlMessage(
+      mode: _neonMode,
+      neon1Running: _neon1Running,
+      neon2Running: _neon2Running,
+    );
+    _bluetoothService.sendMessage(message);
+  }
+
+  /// Envoi de la programmation des néons (à appeler manuellement)
+  void sendNeonSchedule() {
+    if (!_bluetoothService.isConnected) return;
+
+    final message = BluetoothMessageBuilder.buildNeonScheduleMessage(
+      _neonSchedule,
+    );
+    _bluetoothService.sendMessage(message);
+  }
+
   // Setters
   void setMainSwitchOn(bool value) {
     _mainSwitchOn = value;
@@ -50,6 +150,7 @@ class AppProvider extends ChangeNotifier {
     if (!value) {
       _secondHand1Running = false;
     }
+    _sendClockControl();
     notifyListeners();
   }
 
@@ -58,16 +159,19 @@ class AppProvider extends ChangeNotifier {
     if (!value) {
       _secondHand2Running = false;
     }
+    _sendClockControl();
     notifyListeners();
   }
 
   void setSecondHand1Running(bool value) {
     _secondHand1Running = value;
+    _sendClockControl();
     notifyListeners();
   }
 
   void setSecondHand2Running(bool value) {
     _secondHand2Running = value;
+    _sendClockControl();
     notifyListeners();
   }
 
@@ -75,17 +179,20 @@ class AppProvider extends ChangeNotifier {
   void setNeonMode(int value) {
     if (value >= 0 && value <= 2) {
       _neonMode = value;
+      _sendNeonControl();
       notifyListeners();
     }
   }
 
   void setNeon1Running(bool value) {
     _neon1Running = value;
+    _sendNeonControl();
     notifyListeners();
   }
 
   void setNeon2Running(bool value) {
     _neon2Running = value;
+    _sendNeonControl();
     notifyListeners();
   }
 
