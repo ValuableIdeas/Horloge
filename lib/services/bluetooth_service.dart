@@ -10,6 +10,7 @@ class BluetoothService {
   Function()? onConnected;
   Function()? onDisconnected;
   Function(String)? onError;
+  Function(List<int>)? onDataReceived;
 
   bool get isConnected => _isConnected;
   BluetoothDevice? get device => _device;
@@ -73,5 +74,24 @@ class BluetoothService {
 
     await bt.send(_device, message);
     print("Message envoyé: $message");
+  }
+
+  /// Active l'écoute des données reçues
+  Future<void> startListening() async {
+    if (_device == null || !_isConnected) {
+      print("Erreur: Appareil non connecté");
+      return;
+    }
+
+    try {
+      await bt.addRecieveListener(_device, (List<int> data) {
+        print("Données reçues: $data");
+        if (onDataReceived != null) {
+          onDataReceived!(data);
+        }
+      });
+    } catch (e) {
+      print("Erreur lors de l'activation du listener: $e");
+    }
   }
 }

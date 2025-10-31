@@ -19,7 +19,6 @@ class AppProvider extends ChangeNotifier {
   bool _neon2Running = false;
 
   // Neon programming (for Bluetooth function ID 3)
-  // List of time slots: each slot = [dayHourStart, minuteStart, dayHourEnd, minuteEnd]
   List<List<int>> _neonSchedule = [];
 
   // Variables for time setting (for Bluetooth function ID 50)
@@ -29,12 +28,18 @@ class AppProvider extends ChangeNotifier {
   bool _isConnecting = false;
   String _connectionStatus = "Déconnecté";
 
+  // Données reçues
+  List<int> _lastReceivedData = [];
+  String _receivedDataHistory = "";
+
   // Getters
   bool get mainSwitchOn => _mainSwitchOn;
   BluetoothService get bluetoothService => _bluetoothService;
   bool get isConnected => _bluetoothService.isConnected;
   bool get isConnecting => _isConnecting;
   String get connectionStatus => _connectionStatus;
+  List<int> get lastReceivedData => _lastReceivedData;
+  String get receivedDataHistory => _receivedDataHistory;
 
   // Getters - Clocks
   bool get clock1Running => _clock1Running;
@@ -62,6 +67,8 @@ class AppProvider extends ChangeNotifier {
       notifyListeners();
       // Envoi de la remise à l'heure lors de la connexion
       _sendTimeSet();
+      // Démarrer l'écoute des données
+      _bluetoothService.startListening();
     };
 
     _bluetoothService.onDisconnected = () {
@@ -71,6 +78,13 @@ class AppProvider extends ChangeNotifier {
 
     _bluetoothService.onError = (error) {
       _connectionStatus = "Erreur: $error";
+      notifyListeners();
+    };
+
+    _bluetoothService.onDataReceived = (data) {
+      _lastReceivedData = data;
+      _receivedDataHistory +=
+          "${DateTime.now().toString().substring(11, 19)} - $data\n";
       notifyListeners();
     };
   }
@@ -222,6 +236,12 @@ class AppProvider extends ChangeNotifier {
   // Setter - Date/Time
   void setClockDateTime(DateTime dateTime) {
     _clockDateTime = dateTime;
+    notifyListeners();
+  }
+
+  // Effacer l'historique des données reçues
+  void clearReceivedDataHistory() {
+    _receivedDataHistory = "";
     notifyListeners();
   }
 }
