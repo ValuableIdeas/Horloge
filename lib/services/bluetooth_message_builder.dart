@@ -22,6 +22,16 @@ class BluetoothMessageBuilder {
     ];
   }
 
+  /// ID de fonction 10: Interrupteur général
+  /// Args: état général (0/1)
+  static List<int> buildMainSwitchMessage({required bool state}) {
+    return [
+      10, // ID fonction
+      1, // Nombre d'arguments
+      state ? 1 : 0,
+    ];
+  }
+
   /// ID de fonction 1: Gestion néons
   /// Args: mode (0=off, 1=on, 2=prog), neon1 (0/1), neon2 (0/1)
   static List<int> buildNeonControlMessage({

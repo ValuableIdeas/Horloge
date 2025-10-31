@@ -48,9 +48,11 @@ class NeonsBloc extends StatelessWidget {
                   provider.neonMode == 1,
                   provider.neonMode == 2,
                 ],
-                onPressed: (int index) {
-                  provider.setNeonMode(index);
-                },
+                onPressed: provider.mainSwitchOn
+                    ? (int index) {
+                        provider.setNeonMode(index);
+                      }
+                    : null,
                 children: const [
                   Text('OFF'),
                   Text('ON'),
@@ -62,15 +64,17 @@ class NeonsBloc extends StatelessWidget {
 
               // Bouton de programmation
               ElevatedButton(
-                onPressed: () {
-                  print('Bouton cliqué - Navigation vers programmation');
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProgrammationNeons(),
-                    ),
-                  );
-                },
+                onPressed: provider.mainSwitchOn
+                    ? () {
+                        print('Bouton cliqué - Navigation vers programmation');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ProgrammationNeons(),
+                          ),
+                        );
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: primaryColor,
@@ -92,7 +96,9 @@ class NeonsBloc extends StatelessWidget {
                       ),
                       Switch(
                         value: provider.neon1Running,
-                        onChanged: (v) => provider.setNeon1Running(v),
+                        onChanged: provider.mainSwitchOn
+                            ? (v) => provider.setNeon1Running(v)
+                            : null,
                         activeThumbColor: Colors.amber,
                         activeTrackColor: Colors.amber.withOpacity(0.5),
                       ),
@@ -106,7 +112,9 @@ class NeonsBloc extends StatelessWidget {
                       ),
                       Switch(
                         value: provider.neon2Running,
-                        onChanged: (v) => provider.setNeon2Running(v),
+                        onChanged: provider.mainSwitchOn
+                            ? (v) => provider.setNeon2Running(v)
+                            : null,
                         activeThumbColor: Colors.amber,
                         activeTrackColor: Colors.amber.withOpacity(0.5),
                       ),

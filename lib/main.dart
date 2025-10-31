@@ -7,6 +7,7 @@ import 'theme.dart';
 import 'widgets/horloges_bloc.dart';
 import 'widgets/neons_bloc.dart';
 import 'widgets/bluetooth_data_display.dart';
+import 'widgets/temperature_display.dart';
 
 void main() {
   runApp(
@@ -49,6 +50,8 @@ class HomePage extends StatelessWidget {
               const HorlogesBloc(),
               SizedBox(height: 10),
               const NeonsBloc(),
+              SizedBox(height: 10),
+              const TemperatureDisplay(),
               SizedBox(height: 10),
               const BluetoothDataDisplay(),
               SizedBox(height: 30),

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../services/bluetooth_service.dart';
 import '../services/bluetooth_message_builder.dart';
+import '../services/bluetooth_message_parser.dart';
 
 class AppProvider extends ChangeNotifier {
   // Service Bluetooth
@@ -32,6 +33,15 @@ class AppProvider extends ChangeNotifier {
   List<int> _lastReceivedData = [];
   String _receivedDataHistory = "";
 
+  // Heure des horloges reçue depuis Arduino
+  int _clock1Hours = 0;
+  int _clock1Minutes = 0;
+  int _clock2Hours = 0;
+  int _clock2Minutes = 0;
+
+  // Température reçue depuis Arduino
+  double _temperature = 0.0;
+
   // Getters
   bool get mainSwitchOn => _mainSwitchOn;
   BluetoothService get bluetoothService => _bluetoothService;
@@ -40,6 +50,19 @@ class AppProvider extends ChangeNotifier {
   String get connectionStatus => _connectionStatus;
   List<int> get lastReceivedData => _lastReceivedData;
   String get receivedDataHistory => _receivedDataHistory;
+
+  // Getters - Heure des horloges
+  int get clock1Hours => _clock1Hours;
+  int get clock1Minutes => _clock1Minutes;
+  int get clock2Hours => _clock2Hours;
+  int get clock2Minutes => _clock2Minutes;
+  String get clock1TimeString =>
+      BluetoothMessageParser.formatTime(_clock1Hours, _clock1Minutes);
+  String get clock2TimeString =>
+      BluetoothMessageParser.formatTime(_clock2Hours, _clock2Minutes);
+
+  // Getters - Température
+  double get temperature => _temperature;
 
   // Getters - Clocks
   bool get clock1Running => _clock1Running;
@@ -85,6 +108,10 @@ class AppProvider extends ChangeNotifier {
       _lastReceivedData = data;
       _receivedDataHistory +=
           "${DateTime.now().toString().substring(11, 19)} - $data\n";
+
+      // Analyser le message reçu
+      _parseReceivedMessage(data);
+
       notifyListeners();
     };
   }
@@ -130,6 +157,16 @@ class AppProvider extends ChangeNotifier {
     _bluetoothService.sendMessage(message);
   }
 
+  /// Envoi de la commande de l'interrupteur général
+  void _sendMainSwitch() {
+    if (!_bluetoothService.isConnected) return;
+
+    final message = BluetoothMessageBuilder.buildMainSwitchMessage(
+      state: _mainSwitchOn,
+    );
+    _bluetoothService.sendMessage(message);
+  }
+
   /// Envoi de la commande de gestion des néons
   void _sendNeonControl() {
     if (!_bluetoothService.isConnected) return;
@@ -155,11 +192,15 @@ class AppProvider extends ChangeNotifier {
   // Setters
   void setMainSwitchOn(bool value) {
     _mainSwitchOn = value;
+    _sendMainSwitch();
     notifyListeners();
   }
 
   // Setters - Clocks
   void setClock1Running(bool value) {
+    // Bloquer si le switch général est désactivé
+    if (!_mainSwitchOn) return;
+
     _clock1Running = value;
     if (!value) {
       _secondHand1Running = false;
@@ -169,6 +210,9 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setClock2Running(bool value) {
+    // Bloquer si le switch général est désactivé
+    if (!_mainSwitchOn) return;
+
     _clock2Running = value;
     if (!value) {
       _secondHand2Running = false;
@@ -178,12 +222,18 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setSecondHand1Running(bool value) {
+    // Bloquer si le switch général est désactivé
+    if (!_mainSwitchOn) return;
+
     _secondHand1Running = value;
     _sendClockControl();
     notifyListeners();
   }
 
   void setSecondHand2Running(bool value) {
+    // Bloquer si le switch général est désactivé
+    if (!_mainSwitchOn) return;
+
     _secondHand2Running = value;
     _sendClockControl();
     notifyListeners();
@@ -191,6 +241,9 @@ class AppProvider extends ChangeNotifier {
 
   // Setters - Neons
   void setNeonMode(int value) {
+    // Bloquer si le switch général est désactivé
+    if (!_mainSwitchOn) return;
+
     if (value >= 0 && value <= 2) {
       _neonMode = value;
       _sendNeonControl();
@@ -199,12 +252,18 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setNeon1Running(bool value) {
+    // Bloquer si le switch général est désactivé
+    if (!_mainSwitchOn) return;
+
     _neon1Running = value;
     _sendNeonControl();
     notifyListeners();
   }
 
   void setNeon2Running(bool value) {
+    // Bloquer si le switch général est désactivé
+    if (!_mainSwitchOn) return;
+
     _neon2Running = value;
     _sendNeonControl();
     notifyListeners();
@@ -243,5 +302,41 @@ class AppProvider extends ChangeNotifier {
   void clearReceivedDataHistory() {
     _receivedDataHistory = "";
     notifyListeners();
+  }
+
+  /// Analyse les messages Bluetooth reçus
+  void _parseReceivedMessage(List<int> data) {
+    var parsed = BluetoothMessageParser.parseMessage(data);
+
+    if (parsed == null) return;
+
+    int functionId = parsed['functionId'];
+
+    // Traiter selon l'ID de fonction
+    switch (functionId) {
+      case 25: // Heure des horloges
+        var clockData = BluetoothMessageParser.parseClockTimeMessage(data);
+        if (clockData != null) {
+          _clock1Hours = clockData['clock1Hours'];
+          _clock1Minutes = clockData['clock1Minutes'];
+          _clock2Hours = clockData['clock2Hours'];
+          _clock2Minutes = clockData['clock2Minutes'];
+          print("Heure horloge 1: ${clock1TimeString}");
+          print("Heure horloge 2: ${clock2TimeString}");
+        }
+        break;
+
+      case 15: // Température
+        var temp = BluetoothMessageParser.parseTemperatureMessage(data);
+        if (temp != null) {
+          _temperature = temp;
+          print("Température: ${_temperature.toStringAsFixed(1)}°C");
+        }
+        break;
+
+      // Ajouter d'autres cas ici pour les futures fonctions
+      default:
+        print("Fonction ID $functionId non gérée");
+    }
   }
 }

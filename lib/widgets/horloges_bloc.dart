@@ -60,7 +60,32 @@ class HorlogesBloc extends StatelessWidget {
                           ),
                           Switch(
                             value: provider.clock1Running,
-                            onChanged: (v) => provider.setClock1Running(v),
+                            onChanged: provider.mainSwitchOn
+                                ? (v) => provider.setClock1Running(v)
+                                : null,
+                          ),
+                          SizedBox(height: 15),
+                          // Affichage de l'heure
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: primaryColor, width: 2),
+                            ),
+                            child: Text(
+                              provider.clock1TimeString,
+                              style: TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Courier',
+                                letterSpacing: 4,
+                              ),
+                            ),
                           ),
                           SizedBox(height: 10),
                           // Trotteuse 1
@@ -82,7 +107,9 @@ class HorlogesBloc extends StatelessWidget {
                                 ),
                                 Switch(
                                   value: provider.secondHand1Running,
-                                  onChanged: provider.clock1Running
+                                  onChanged:
+                                      (provider.clock1Running &&
+                                          provider.mainSwitchOn)
                                       ? (v) => provider.setSecondHand1Running(v)
                                       : null,
                                 ),
@@ -116,7 +143,32 @@ class HorlogesBloc extends StatelessWidget {
                           ),
                           Switch(
                             value: provider.clock2Running,
-                            onChanged: (v) => provider.setClock2Running(v),
+                            onChanged: provider.mainSwitchOn
+                                ? (v) => provider.setClock2Running(v)
+                                : null,
+                          ),
+                          SizedBox(height: 15),
+                          // Affichage de l'heure
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black87,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: primaryColor, width: 2),
+                            ),
+                            child: Text(
+                              provider.clock2TimeString,
+                              style: TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Courier',
+                                letterSpacing: 4,
+                              ),
+                            ),
                           ),
                           SizedBox(height: 10),
                           // Trotteuse 2
@@ -138,7 +190,9 @@ class HorlogesBloc extends StatelessWidget {
                                 ),
                                 Switch(
                                   value: provider.secondHand2Running,
-                                  onChanged: provider.clock2Running
+                                  onChanged:
+                                      (provider.clock2Running &&
+                                          provider.mainSwitchOn)
                                       ? (v) => provider.setSecondHand2Running(v)
                                       : null,
                                 ),
