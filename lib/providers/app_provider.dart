@@ -192,7 +192,29 @@ class AppProvider extends ChangeNotifier {
   // Setters
   void setMainSwitchOn(bool value) {
     _mainSwitchOn = value;
-    _sendMainSwitch();
+
+    // Si on désactive le switch général, tout désactiver
+    if (!value) {
+      // Désactiver les horloges
+      _clock1Running = false;
+      _clock2Running = false;
+      _secondHand1Running = false;
+      _secondHand2Running = false;
+
+      // Désactiver les néons
+      _neonMode = 0; // OFF
+      _neon1Running = false;
+      _neon2Running = false;
+
+      // Envoyer les commandes Bluetooth
+      _sendMainSwitch(); // Envoyer l'état général OFF
+      _sendClockControl(); // Envoyer horloges OFF
+      _sendNeonControl(); // Envoyer néons OFF
+    } else {
+      // Si on active le switch général, juste envoyer l'état
+      _sendMainSwitch();
+    }
+
     notifyListeners();
   }
 
