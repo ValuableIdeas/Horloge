@@ -326,8 +326,38 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Analyse les messages Bluetooth reçus
+  /// Analyse les messages Bluetooth reçus (peut contenir plusieurs messages collés)
   void _parseReceivedMessage(List<int> data) {
+    // Si le message contient plusieurs fonctions collées, les séparer
+    int offset = 0;
+
+    while (offset < data.length) {
+      // Vérifier qu'il reste au moins 2 bytes (ID + argCount)
+      if (offset + 1 >= data.length) break;
+
+      //int functionId = data[offset];
+      int argCount = data[offset + 1];
+
+      // Vérifier qu'on a assez de bytes pour ce message
+      int messageLength = 2 + argCount;
+      if (offset + messageLength > data.length) {
+        print("Message incomplet à l'offset $offset");
+        break;
+      }
+
+      // Extraire le message individuel
+      List<int> singleMessage = data.sublist(offset, offset + messageLength);
+
+      // Traiter le message
+      _parseSingleMessage(singleMessage);
+
+      // Passer au message suivant
+      offset += messageLength;
+    }
+  }
+
+  /// Analyse un seul message
+  void _parseSingleMessage(List<int> data) {
     var parsed = BluetoothMessageParser.parseMessage(data);
 
     if (parsed == null) return;
