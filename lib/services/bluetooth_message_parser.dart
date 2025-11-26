@@ -38,7 +38,7 @@ class BluetoothMessageParser {
     }
     if (parsed['argCount'] != 4) {
       print(
-        "Nombre d'arguments incorrect pour ID 50. Attendu: 4, Reçu: ${parsed['argCount']}",
+        "Nombre d'arguments incorrect pour ID 25. Attendu: 4, Reçu: ${parsed['argCount']}",
       );
       return null;
     }
@@ -88,5 +88,91 @@ class BluetoothMessageParser {
     double temp = (coded / RESOLUTION) - OFFSET;
 
     return temp;
+  }
+
+  /// Parse spécifiquement la fonction ID 100 (synchronisation complète)
+  /// Format: [100, arg_count, general, work0, work1, trot0, trot1,
+  ///          state_neons, neons_work0, neons_work1, track_number,
+  ///          puis 4 bytes par plage]
+  static Map<String, dynamic>? parseSyncMessage(List<int> message) {
+    print(">>> Parsing message de synchronisation");
+    print("    Message complet: $message");
+
+    var parsed = parseMessage(message);
+
+    if (parsed == null) {
+      print("    ❌ Échec du parsing de base");
+      return null;
+    }
+
+    if (parsed['functionId'] != 100) {
+      print(
+        "    ❌ ID de fonction incorrect. Attendu: 100, Reçu: ${parsed['functionId']}",
+      );
+      return null;
+    }
+
+    List<int> args = parsed['args'];
+
+    print("    Arguments count: ${args.length}");
+
+    // Vérifier qu'on a au minimum les 9 bytes fixes
+    if (args.length < 9) {
+      print(
+        "    ❌ Nombre d'arguments incorrect pour ID 100. Minimum: 9, Reçu: ${args.length}",
+      );
+      return null;
+    }
+
+    // Extraire les données fixes (9 premiers bytes)
+    int general = args[0];
+    int work0 = args[1];
+    int work1 = args[2];
+    int trot0 = args[3];
+    int trot1 = args[4];
+    int stateNeons = args[5];
+    int neonsWork0 = args[6];
+    int neonsWork1 = args[7];
+    int trackNumber = args[8];
+
+    print("    Données fixes extraites:");
+    print("      general=$general, work=[$work0,$work1], trot=[$trot0,$trot1]");
+    print("      neons: mode=$stateNeons, active=[$neonsWork0,$neonsWork1]");
+    print("      track_number=$trackNumber");
+
+    // Vérifier la cohérence avec le nombre de plages
+    int expectedLength = 9 + (trackNumber * 4);
+    if (args.length != expectedLength) {
+      print(
+        "    ❌ Longueur incorrecte pour la programmation. Attendu: $expectedLength, Reçu: ${args.length}",
+      );
+      return null;
+    }
+
+    // Extraire les plages horaires
+    List<List<int>> neonSchedule = [];
+    for (int i = 0; i < trackNumber; i++) {
+      int offset = 9 + (i * 4);
+      neonSchedule.add([
+        args[offset], // dayHourStart
+        args[offset + 1], // minuteStart
+        args[offset + 2], // dayHourEnd
+        args[offset + 3], // minuteEnd
+      ]);
+    }
+
+    print("    ✅ Parsing réussi - ${neonSchedule.length} plages extraites");
+
+    return {
+      'general': general == 1,
+      'clock1Running': work0 == 1,
+      'clock2Running': work1 == 1,
+      'secondHand1Running': trot0 == 1,
+      'secondHand2Running': trot1 == 1,
+      'neonMode': stateNeons,
+      'neon1Running': neonsWork0 == 1,
+      'neon2Running': neonsWork1 == 1,
+      'neonSchedule': neonSchedule,
+    };
   }
 }

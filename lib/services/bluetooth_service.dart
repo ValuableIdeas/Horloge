@@ -61,6 +61,12 @@ class BluetoothService {
     if (_device != null) {
       await bt.disconnect(_device);
       _isConnected = false;
+
+      // Déclencher manuellement le callback de déconnexion
+      if (onDisconnected != null) {
+        onDisconnected!();
+      }
+
       _device = null;
     }
   }
@@ -90,6 +96,7 @@ class BluetoothService {
           onDataReceived!(data);
         }
       });
+      print("Écoute Bluetooth activée");
     } catch (e) {
       print("Erreur lors de l'activation du listener: $e");
     }

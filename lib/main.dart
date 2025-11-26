@@ -8,6 +8,8 @@ import 'widgets/horloges_bloc.dart';
 import 'widgets/neons_bloc.dart';
 import 'widgets/bluetooth_data_display.dart';
 import 'widgets/temperature_display.dart';
+import 'screens/connection_screen.dart';
+import 'widgets/loading_overlay.dart';
 
 void main() {
   runApp(
@@ -32,77 +34,49 @@ class HomePage extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Scaffold(
-          body: ListView(
-            padding: EdgeInsets.all(20.0),
+          body: Stack(
             children: [
-              Center(
-                child: Text(
-                  "Horloge SNCB",
-                  style: GoogleFonts.alfaSlabOne(
-                    color: Theme.of(context).primaryColor,
-                    fontSize: 25,
+              // Contenu principal
+              ListView(
+                padding: EdgeInsets.all(20.0),
+                children: [
+                  Center(
+                    child: Text(
+                      "Horloge SNCB",
+                      style: GoogleFonts.alfaSlabOne(
+                        color: Theme.of(context).primaryColor,
+                        fontSize: 25,
+                      ),
+                    ),
                   ),
-                ),
+                  SizedBox(height: 10),
+                  const InterrupteurGeneralBloc(),
+                  SizedBox(height: 10),
+                  const HorlogesBloc(),
+                  SizedBox(height: 10),
+                  const NeonsBloc(),
+                  SizedBox(height: 10),
+                  const TemperatureDisplay(),
+                  SizedBox(height: 10),
+                  const BluetoothDataDisplay(),
+                  SizedBox(height: 30),
+                  Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.grass),
+                        Text("Projet mené à bien par Basile et Quentin "),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(height: 10),
-              const InterrupteurGeneralBloc(),
-              SizedBox(height: 10),
-              const HorlogesBloc(),
-              SizedBox(height: 10),
-              const NeonsBloc(),
-              SizedBox(height: 10),
-              const TemperatureDisplay(),
-              SizedBox(height: 10),
-              const BluetoothDataDisplay(),
-              SizedBox(height: 30),
-              Center(
-                child: Column(
-                  children: [
-                    Icon(Icons.grass),
-                    Text("Projet mené à bien par Basile et Quentin "),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () async {
-              if (provider.isConnected) {
-                // Déconnexion
-                await provider.disconnectBluetooth();
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text('Déconnecté')));
-              } else {
-                // Connexion
-                await provider.connectBluetooth();
 
-                if (provider.isConnected) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Connecté avec succès !'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Échec de connexion'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            icon: Icon(
-              provider.isConnected
-                  ? Icons.bluetooth_connected
-                  : Icons.bluetooth,
-            ),
-            label: Text(provider.isConnected ? 'Connecté' : 'Connexion'),
-            backgroundColor: provider.isConnected
-                ? Colors.green
-                : Theme.of(context).primaryColor,
+              // Overlay de chargement (synchronisation)
+              const LoadingOverlay(),
+
+              // Écran de connexion par-dessus tout
+              const ConnectionScreen(),
+            ],
           ),
         );
       },

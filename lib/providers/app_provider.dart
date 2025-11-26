@@ -27,6 +27,7 @@ class AppProvider extends ChangeNotifier {
 
   // État de connexion
   bool _isConnecting = false;
+  bool _isSynchronizing = false; // ✅ NOUVEAU : État de synchronisation
   String _connectionStatus = "Déconnecté";
 
   // Données reçues
@@ -47,6 +48,7 @@ class AppProvider extends ChangeNotifier {
   BluetoothService get bluetoothService => _bluetoothService;
   bool get isConnected => _bluetoothService.isConnected;
   bool get isConnecting => _isConnecting;
+  bool get isSynchronizing => _isSynchronizing; // ✅ NOUVEAU
   String get connectionStatus => _connectionStatus;
   List<int> get lastReceivedData => _lastReceivedData;
   String get receivedDataHistory => _receivedDataHistory;
@@ -85,17 +87,62 @@ class AppProvider extends ChangeNotifier {
 
   /// Configuration des callbacks Bluetooth
   void _setupBluetoothCallbacks() {
-    _bluetoothService.onConnected = () {
-      _connectionStatus = "Connecté";
-      notifyListeners();
-      // Envoi de la remise à l'heure lors de la connexion
-      _sendTimeSet();
-      // Démarrer l'écoute des données
-      _bluetoothService.startListening();
+    _bluetoothService.onConnected = () async {
+      print("🔗 Connexion Bluetooth établie");
+
+      // NE PAS mettre à jour l'état tout de suite
+      // On attend la synchronisation complète
+
+      try {
+        // 1. Démarrer l'écoute des données
+        await _bluetoothService.startListening();
+        print("👂 Écoute activée");
+
+        // 2. Attendre que le listener soit bien configuré
+        await Future.delayed(Duration(milliseconds: 800));
+
+        // 3. Marquer comme "en synchronisation"
+        _isSynchronizing = true;
+        _connectionStatus = "Synchronisation...";
+        notifyListeners();
+
+        // 4. Demander la synchronisation (on attend la réponse)
+        _requestSynchronization();
+
+        // 5. Attendre la réponse de synchronisation (max 3 secondes)
+        int attempts = 0;
+        while (_isSynchronizing && attempts < 30) {
+          await Future.delayed(Duration(milliseconds: 100));
+          attempts++;
+        }
+
+        if (_isSynchronizing) {
+          // Timeout - la synchronisation n'a pas répondu
+          print("⚠️ Timeout de synchronisation");
+          _isSynchronizing = false;
+        }
+
+        // 6. Envoyer la remise à l'heure
+        _sendTimeSet();
+
+        // 7. Marquer comme connecté
+        _connectionStatus = "Connecté";
+        _isConnecting = false;
+        notifyListeners();
+
+        print("✅ Connexion et synchronisation terminées");
+      } catch (e) {
+        print("❌ Erreur lors de la séquence de connexion: $e");
+        _isConnecting = false;
+        _isSynchronizing = false;
+        _connectionStatus = "Erreur";
+        notifyListeners();
+      }
     };
 
     _bluetoothService.onDisconnected = () {
       _connectionStatus = "Déconnecté";
+      _isConnecting = false;
       notifyListeners();
     };
 
@@ -105,6 +152,8 @@ class AppProvider extends ChangeNotifier {
     };
 
     _bluetoothService.onDataReceived = (data) {
+      print("<<< Données brutes reçues: $data");
+
       _lastReceivedData = data;
       _receivedDataHistory +=
           "${DateTime.now().toString().substring(11, 19)} - $data\n";
@@ -114,6 +163,13 @@ class AppProvider extends ChangeNotifier {
 
       notifyListeners();
     };
+  }
+
+  /// Demande la synchronisation des données depuis l'Arduino
+  void _requestSynchronization() {
+    final message = BluetoothMessageBuilder.buildSyncRequestMessage();
+    _bluetoothService.sendMessage(message);
+    print(">>> Demande de synchronisation envoyée: $message");
   }
 
   /// Connexion au dispositif Bluetooth
@@ -135,6 +191,7 @@ class AppProvider extends ChangeNotifier {
   Future<void> disconnectBluetooth() async {
     await _bluetoothService.disconnect();
     _connectionStatus = "Déconnecté";
+    _isConnecting = false;
     notifyListeners();
   }
 
@@ -386,9 +443,54 @@ class AppProvider extends ChangeNotifier {
         }
         break;
 
+      case 100: // Synchronisation complète depuis Arduino
+        _parseSyncMessage(data);
+        break;
+
       // Ajouter d'autres cas ici pour les futures fonctions
       default:
         print("Fonction ID $functionId non gérée");
     }
+  }
+
+  /// Parse le message de synchronisation (fonction ID 100)
+  void _parseSyncMessage(List<int> data) {
+    var syncData = BluetoothMessageParser.parseSyncMessage(data);
+
+    if (syncData == null) {
+      print("❌ Erreur lors du parsing du message de synchronisation");
+      return;
+    }
+
+    print("=== SYNCHRONISATION REÇUE ===");
+
+    // Mettre à jour toutes les variables locales sans envoyer de commandes
+    _mainSwitchOn = syncData['general'];
+    _clock1Running = syncData['clock1Running'];
+    _clock2Running = syncData['clock2Running'];
+    _secondHand1Running = syncData['secondHand1Running'];
+    _secondHand2Running = syncData['secondHand2Running'];
+    _neonMode = syncData['neonMode'];
+    _neon1Running = syncData['neon1Running'];
+    _neon2Running = syncData['neon2Running'];
+
+    // Mettre à jour la programmation
+    _neonSchedule = List<List<int>>.from(
+      syncData['neonSchedule'].map((item) => List<int>.from(item)),
+    );
+
+    print("État après synchronisation :");
+    print("  - Interrupteur général: $_mainSwitchOn");
+    print("  - Horloges: H1=$_clock1Running H2=$_clock2Running");
+    print("  - Trotteuses: T1=$_secondHand1Running T2=$_secondHand2Running");
+    print("  - Néons mode: $_neonMode");
+    print("  - Néons actifs: N1=$_neon1Running N2=$_neon2Running");
+    print("  - Programmation: ${_neonSchedule.length} plages");
+    print("==============================");
+
+    // ✅ Marquer la synchronisation comme terminée
+    _isSynchronizing = false;
+
+    notifyListeners();
   }
 }

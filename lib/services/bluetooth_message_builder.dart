@@ -91,4 +91,14 @@ class BluetoothMessageBuilder {
 
     return message;
   }
+
+  /// ID de fonction 100: Demande de synchronisation
+  /// Args: 1 (dummy argument)
+  static List<int> buildSyncRequestMessage() {
+    return [
+      100, // ID fonction
+      1, // Nombre d'arguments
+      1, // Argument dummy
+    ];
+  }
 }
