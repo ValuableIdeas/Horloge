@@ -9,12 +9,17 @@ class ConnectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        // Si connecté, ne rien afficher
-        if (provider.isConnected) {
+        // Si connecté ET pas en train de synchroniser, ne rien afficher
+        if (provider.isConnected && !provider.isSynchronizing) {
           return const SizedBox.shrink();
         }
 
-        // Sinon, afficher l'écran de connexion par-dessus tout
+        // Si en synchronisation, ne rien afficher (LoadingOverlay s'en charge)
+        if (provider.isSynchronizing) {
+          return const SizedBox.shrink();
+        }
+
+        // Sinon, afficher l'écran de connexion
         return Container(
           color: Theme.of(context).primaryColor,
           child: Center(
@@ -68,7 +73,18 @@ class ConnectionScreen extends StatelessWidget {
                       SizedBox(height: 15),
                       Text(
                         'Connexion en cours...',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Validez les pop-ups Android\nLa connexion peut prendre jusqu\'à 30s',
+                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   )
@@ -77,12 +93,15 @@ class ConnectionScreen extends StatelessWidget {
                     onPressed: () async {
                       await provider.connectBluetooth();
 
-                      if (!provider.isConnected) {
+                      // Attendre un peu pour voir si la connexion a réussi
+                      await Future.delayed(Duration(milliseconds: 500));
+
+                      if (!provider.isConnected && !provider.isConnecting) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Échec de connexion'),
+                            content: Text(provider.connectionStatus),
                             backgroundColor: Colors.red,
-                            duration: Duration(seconds: 2),
+                            duration: Duration(seconds: 3),
                           ),
                         );
                       }

@@ -93,6 +93,7 @@ class BluetoothMessageParser {
   /// Parse spécifiquement la fonction ID 100 (synchronisation complète)
   /// Format: [100, arg_count, general, work0, work1, trot0, trot1,
   ///          state_neons, neons_work0, neons_work1, track_number,
+  ///          hour0, minute0, hour1, minute1,
   ///          puis 4 bytes par plage]
   static Map<String, dynamic>? parseSyncMessage(List<int> message) {
     print(">>> Parsing message de synchronisation");
@@ -116,15 +117,15 @@ class BluetoothMessageParser {
 
     print("    Arguments count: ${args.length}");
 
-    // Vérifier qu'on a au minimum les 9 bytes fixes
-    if (args.length < 9) {
+    // Vérifier qu'on a au minimum les 13 bytes fixes (9 + 4 pour les heures)
+    if (args.length < 13) {
       print(
-        "    ❌ Nombre d'arguments incorrect pour ID 100. Minimum: 9, Reçu: ${args.length}",
+        "    ❌ Nombre d'arguments incorrect pour ID 100. Minimum: 13, Reçu: ${args.length}",
       );
       return null;
     }
 
-    // Extraire les données fixes (9 premiers bytes)
+    // Extraire les données fixes (13 premiers bytes)
     int general = args[0];
     int work0 = args[1];
     int work1 = args[2];
@@ -135,13 +136,20 @@ class BluetoothMessageParser {
     int neonsWork1 = args[7];
     int trackNumber = args[8];
 
+    // ✅ NOUVEAU : Heures des horloges
+    int hour0 = args[9];
+    int minute0 = args[10];
+    int hour1 = args[11];
+    int minute1 = args[12];
+
     print("    Données fixes extraites:");
     print("      general=$general, work=[$work0,$work1], trot=[$trot0,$trot1]");
     print("      neons: mode=$stateNeons, active=[$neonsWork0,$neonsWork1]");
     print("      track_number=$trackNumber");
+    print("      horloges: H1=${hour0}:${minute0}, H2=${hour1}:${minute1}");
 
     // Vérifier la cohérence avec le nombre de plages
-    int expectedLength = 9 + (trackNumber * 4);
+    int expectedLength = 13 + (trackNumber * 4);
     if (args.length != expectedLength) {
       print(
         "    ❌ Longueur incorrecte pour la programmation. Attendu: $expectedLength, Reçu: ${args.length}",
@@ -152,7 +160,7 @@ class BluetoothMessageParser {
     // Extraire les plages horaires
     List<List<int>> neonSchedule = [];
     for (int i = 0; i < trackNumber; i++) {
-      int offset = 9 + (i * 4);
+      int offset = 13 + (i * 4);
       neonSchedule.add([
         args[offset], // dayHourStart
         args[offset + 1], // minuteStart
@@ -173,6 +181,11 @@ class BluetoothMessageParser {
       'neon1Running': neonsWork0 == 1,
       'neon2Running': neonsWork1 == 1,
       'neonSchedule': neonSchedule,
+      // ✅ NOUVEAU : Heures des horloges
+      'clock1Hours': hour0,
+      'clock1Minutes': minute0,
+      'clock2Hours': hour1,
+      'clock2Minutes': minute1,
     };
   }
 }

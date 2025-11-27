@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 
@@ -47,25 +48,60 @@ class InterrupteurGeneralBloc extends StatelessWidget {
               // Partie droite : Bouton de déconnexion (carré)
               if (provider.isConnected)
                 Container(
-                  height: 50, // Même hauteur que le switch
-                  width: 50, // Carré
+                  height: 50,
+                  width: 50,
                   margin: EdgeInsets.only(left: 5),
                   child: Material(
-                    color: Colors.red.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(8),
+                    color: primaryColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: Colors.white, width: 2),
+                    ),
+
                     child: InkWell(
                       onTap: () async {
-                        await provider.disconnectBluetooth();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Déconnecté'),
-                            duration: Duration(seconds: 1),
-                          ),
+                        // Afficher un dialog de confirmation
+                        bool? confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Déconnexion'),
+                              content: Text(
+                                "Quitter l'application pour rompre la connexion Bluetooth ?",
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: Text('Annuler'),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  child: Text(
+                                    'Quitter',
+                                    style: TextStyle(color: primaryColor),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         );
+
+                        if (confirm == true) {
+                          // Déconnecter
+                          await provider.disconnectBluetooth();
+
+                          // Attendre un peu
+                          await Future.delayed(Duration(milliseconds: 300));
+
+                          // Redémarrer l'app
+                          SystemNavigator.pop(); // Ferme l'app sur Android
+                        }
                       },
                       borderRadius: BorderRadius.circular(8),
                       child: Icon(
-                        Icons.bluetooth_disabled,
+                        Icons.power_settings_new,
                         color: Colors.white,
                         size: 28,
                       ),

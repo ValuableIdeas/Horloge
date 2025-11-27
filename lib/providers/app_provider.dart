@@ -88,10 +88,13 @@ class AppProvider extends ChangeNotifier {
   /// Configuration des callbacks Bluetooth
   void _setupBluetoothCallbacks() {
     _bluetoothService.onConnected = () async {
-      print("🔗 Connexion Bluetooth établie");
+      print("🔗 Connexion Bluetooth établie - Démarrage de la séquence");
 
-      // NE PAS mettre à jour l'état tout de suite
-      // On attend la synchronisation complète
+      // IMMÉDIATEMENT marquer comme "en synchronisation"
+      // pour que LoadingOverlay masque tout
+      _isSynchronizing = true;
+      _connectionStatus = "Synchronisation...";
+      notifyListeners();
 
       try {
         // 1. Démarrer l'écoute des données
@@ -99,55 +102,93 @@ class AppProvider extends ChangeNotifier {
         print("👂 Écoute activée");
 
         // 2. Attendre que le listener soit bien configuré
-        await Future.delayed(Duration(milliseconds: 800));
+        await Future.delayed(Duration(milliseconds: 1000));
 
-        // 3. Marquer comme "en synchronisation"
-        _isSynchronizing = true;
-        _connectionStatus = "Synchronisation...";
-        notifyListeners();
-
-        // 4. Demander la synchronisation (on attend la réponse)
+        // 3. Demander la synchronisation (on attend la réponse)
         _requestSynchronization();
+        print("📤 Demande de synchronisation envoyée");
 
-        // 5. Attendre la réponse de synchronisation (max 3 secondes)
+        // 4. Attendre la réponse de synchronisation (max 5 secondes)
         int attempts = 0;
-        while (_isSynchronizing && attempts < 30) {
+        while (_isSynchronizing && attempts < 50) {
           await Future.delayed(Duration(milliseconds: 100));
           attempts++;
         }
 
+        // ✅ VÉRIFIER SI TOUJOURS CONNECTÉ
+        if (!_bluetoothService.isConnected) {
+          print("⚠️ Déconnecté pendant la synchronisation");
+          _isSynchronizing = false;
+          _isConnecting = false;
+          notifyListeners();
+          return; // ✅ SORTIR - ne pas continuer
+        }
+
         if (_isSynchronizing) {
           // Timeout - la synchronisation n'a pas répondu
-          print("⚠️ Timeout de synchronisation");
+          print("⚠️ Timeout de synchronisation (5s)");
           _isSynchronizing = false;
+          _connectionStatus = "Erreur de synchronisation";
+          notifyListeners();
+
+          // Déconnecter et retourner
+          await disconnectBluetooth();
+          return; // ✅ SORTIR - ne pas continuer
+        }
+
+        print("✅ Synchronisation reçue et traitée");
+
+        // 5. Attendre un peu pour stabiliser
+        await Future.delayed(Duration(milliseconds: 200));
+
+        // ✅ VÉRIFIER SI TOUJOURS CONNECTÉ
+        if (!_bluetoothService.isConnected) {
+          print("⚠️ Déconnecté après synchronisation");
+          _isSynchronizing = false;
+          _isConnecting = false;
+          notifyListeners();
+          return; // ✅ SORTIR
         }
 
         // 6. Envoyer la remise à l'heure
         _sendTimeSet();
+        print("🕐 Remise à l'heure envoyée");
 
         // 7. Marquer comme connecté
         _connectionStatus = "Connecté";
         _isConnecting = false;
         notifyListeners();
 
-        print("✅ Connexion et synchronisation terminées");
+        print("✅✅✅ Connexion et synchronisation terminées avec succès");
       } catch (e) {
         print("❌ Erreur lors de la séquence de connexion: $e");
         _isConnecting = false;
         _isSynchronizing = false;
         _connectionStatus = "Erreur";
         notifyListeners();
+
+        // Déconnecter en cas d'erreur
+        try {
+          await disconnectBluetooth();
+        } catch (disconnectError) {
+          print("❌ Erreur lors de la déconnexion: $disconnectError");
+        }
       }
     };
 
     _bluetoothService.onDisconnected = () {
+      print("📴 Callback onDisconnected appelé");
       _connectionStatus = "Déconnecté";
       _isConnecting = false;
+      _isSynchronizing = false; // ✅ AJOUTÉ
       notifyListeners();
     };
 
     _bluetoothService.onError = (error) {
+      print("❌ Erreur Bluetooth: $error");
       _connectionStatus = "Erreur: $error";
+      _isConnecting = false;
+      _isSynchronizing = false; // ✅ AJOUTÉ
       notifyListeners();
     };
 
@@ -174,24 +215,34 @@ class AppProvider extends ChangeNotifier {
 
   /// Connexion au dispositif Bluetooth
   Future<void> connectBluetooth() async {
+    print("🚀 Démarrage de la connexion Bluetooth");
+
     _isConnecting = true;
+    _isSynchronizing = false;
     _connectionStatus = "Connexion en cours...";
     notifyListeners();
 
+    // ✅ Le service va retenter indéfiniment jusqu'au succès
     bool success = await _bluetoothService.connectToDevice();
 
-    _isConnecting = false;
+    // Si on arrive ici avec success=false, c'est une erreur critique
     if (!success) {
+      print("❌ Échec critique de la connexion");
+      _isConnecting = false;
+      _isSynchronizing = false;
       _connectionStatus = "Échec de connexion";
+      notifyListeners();
     }
-    notifyListeners();
+    // Si success=true, le callback onConnected prendra le relais
   }
 
   /// Déconnexion du dispositif Bluetooth
   Future<void> disconnectBluetooth() async {
+    print("📴 Demande de déconnexion");
     await _bluetoothService.disconnect();
     _connectionStatus = "Déconnecté";
     _isConnecting = false;
+    _isSynchronizing = false;
     notifyListeners();
   }
 
@@ -474,6 +525,12 @@ class AppProvider extends ChangeNotifier {
     _neon1Running = syncData['neon1Running'];
     _neon2Running = syncData['neon2Running'];
 
+    // ✅ NOUVEAU : Mettre à jour les heures des horloges
+    _clock1Hours = syncData['clock1Hours'];
+    _clock1Minutes = syncData['clock1Minutes'];
+    _clock2Hours = syncData['clock2Hours'];
+    _clock2Minutes = syncData['clock2Minutes'];
+
     // Mettre à jour la programmation
     _neonSchedule = List<List<int>>.from(
       syncData['neonSchedule'].map((item) => List<int>.from(item)),
@@ -483,6 +540,7 @@ class AppProvider extends ChangeNotifier {
     print("  - Interrupteur général: $_mainSwitchOn");
     print("  - Horloges: H1=$_clock1Running H2=$_clock2Running");
     print("  - Trotteuses: T1=$_secondHand1Running T2=$_secondHand2Running");
+    print("  - Heures: H1=${clock1TimeString} H2=${clock2TimeString}");
     print("  - Néons mode: $_neonMode");
     print("  - Néons actifs: N1=$_neon1Running N2=$_neon2Running");
     print("  - Programmation: ${_neonSchedule.length} plages");
