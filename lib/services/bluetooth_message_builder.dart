@@ -101,4 +101,24 @@ class BluetoothMessageBuilder {
       1, // Argument dummy
     ];
   }
+
+  /// ✅ NOUVEAU - ID de fonction 51: Ajouter une minute à une horloge
+  /// Args: clockIndex (0 pour horloge 1, 1 pour horloge 2)
+  static List<int> buildAddMinuteMessage(int clockIndex) {
+    return [
+      51, // ID fonction
+      1, // Nombre d'arguments
+      clockIndex, // 0 ou 1
+    ];
+  }
+
+  /// ✅ NOUVEAU - ID de fonction 52: Retirer une minute à une horloge
+  /// Args: clockIndex (0 pour horloge 1, 1 pour horloge 2)
+  static List<int> buildRemoveMinuteMessage(int clockIndex) {
+    return [
+      52, // ID fonction
+      1, // Nombre d'arguments
+      clockIndex, // 0 ou 1
+    ];
+  }
 }

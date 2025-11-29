@@ -3,8 +3,15 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../screens/programmation_neons.dart';
 
-class NeonsBloc extends StatelessWidget {
+class NeonsBloc extends StatefulWidget {
   const NeonsBloc({super.key});
+
+  @override
+  State<NeonsBloc> createState() => _NeonsBlocState();
+}
+
+class _NeonsBlocState extends State<NeonsBloc> {
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -62,24 +69,49 @@ class NeonsBloc extends StatelessWidget {
 
               SizedBox(height: 10),
 
-              // Bouton de programmation
+              // Bouton de programmation avec loading indicator
               ElevatedButton(
-                onPressed: provider.mainSwitchOn
-                    ? () {
-                        print('Bouton cliqué - Navigation vers programmation');
-                        Navigator.push(
+                onPressed: provider.mainSwitchOn && !_isLoading
+                    ? () async {
+                        setState(() {
+                          _isLoading = true;
+                        });
+
+                        // Petit délai pour afficher le loading
+                        await Future.delayed(Duration(milliseconds: 100));
+
+                        if (!mounted) return;
+
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const ProgrammationNeons(),
                           ),
                         );
+
+                        if (mounted) {
+                          setState(() {
+                            _isLoading = false;
+                          });
+                        }
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: primaryColor,
                 ),
-                child: const Text('Gérer les plages horaires'),
+                child: _isLoading
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            primaryColor,
+                          ),
+                        ),
+                      )
+                    : const Text('Gérer les plages horaires'),
               ),
 
               SizedBox(height: 10),

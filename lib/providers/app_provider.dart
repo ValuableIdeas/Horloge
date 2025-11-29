@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import '../services/bluetooth_service.dart';
 import '../services/bluetooth_message_builder.dart';
 import '../services/bluetooth_message_parser.dart';
@@ -27,7 +28,7 @@ class AppProvider extends ChangeNotifier {
 
   // État de connexion
   bool _isConnecting = false;
-  bool _isSynchronizing = false; // ✅ NOUVEAU : État de synchronisation
+  bool _isSynchronizing = false;
   String _connectionStatus = "Déconnecté";
 
   // Données reçues
@@ -48,7 +49,7 @@ class AppProvider extends ChangeNotifier {
   BluetoothService get bluetoothService => _bluetoothService;
   bool get isConnected => _bluetoothService.isConnected;
   bool get isConnecting => _isConnecting;
-  bool get isSynchronizing => _isSynchronizing; // ✅ NOUVEAU
+  bool get isSynchronizing => _isSynchronizing;
   String get connectionStatus => _connectionStatus;
   List<int> get lastReceivedData => _lastReceivedData;
   String get receivedDataHistory => _receivedDataHistory;
@@ -90,71 +91,58 @@ class AppProvider extends ChangeNotifier {
     _bluetoothService.onConnected = () async {
       print("🔗 Connexion Bluetooth établie - Démarrage de la séquence");
 
-      // IMMÉDIATEMENT marquer comme "en synchronisation"
-      // pour que LoadingOverlay masque tout
       _isSynchronizing = true;
       _connectionStatus = "Synchronisation...";
       notifyListeners();
 
       try {
-        // 1. Démarrer l'écoute des données
         await _bluetoothService.startListening();
         print("👂 Écoute activée");
 
-        // 2. Attendre que le listener soit bien configuré
         await Future.delayed(Duration(milliseconds: 1000));
 
-        // 3. Demander la synchronisation (on attend la réponse)
         _requestSynchronization();
         print("📤 Demande de synchronisation envoyée");
 
-        // 4. Attendre la réponse de synchronisation (max 5 secondes)
         int attempts = 0;
         while (_isSynchronizing && attempts < 50) {
           await Future.delayed(Duration(milliseconds: 100));
           attempts++;
         }
 
-        // ✅ VÉRIFIER SI TOUJOURS CONNECTÉ
         if (!_bluetoothService.isConnected) {
           print("⚠️ Déconnecté pendant la synchronisation");
           _isSynchronizing = false;
           _isConnecting = false;
           notifyListeners();
-          return; // ✅ SORTIR - ne pas continuer
+          return;
         }
 
         if (_isSynchronizing) {
-          // Timeout - la synchronisation n'a pas répondu
           print("⚠️ Timeout de synchronisation (5s)");
           _isSynchronizing = false;
           _connectionStatus = "Erreur de synchronisation";
           notifyListeners();
 
-          // Déconnecter et retourner
           await disconnectBluetooth();
-          return; // ✅ SORTIR - ne pas continuer
+          return;
         }
 
         print("✅ Synchronisation reçue et traitée");
 
-        // 5. Attendre un peu pour stabiliser
         await Future.delayed(Duration(milliseconds: 200));
 
-        // ✅ VÉRIFIER SI TOUJOURS CONNECTÉ
         if (!_bluetoothService.isConnected) {
           print("⚠️ Déconnecté après synchronisation");
           _isSynchronizing = false;
           _isConnecting = false;
           notifyListeners();
-          return; // ✅ SORTIR
+          return;
         }
 
-        // 6. Envoyer la remise à l'heure
         _sendTimeSet();
         print("🕐 Remise à l'heure envoyée");
 
-        // 7. Marquer comme connecté
         _connectionStatus = "Connecté";
         _isConnecting = false;
         notifyListeners();
@@ -167,7 +155,6 @@ class AppProvider extends ChangeNotifier {
         _connectionStatus = "Erreur";
         notifyListeners();
 
-        // Déconnecter en cas d'erreur
         try {
           await disconnectBluetooth();
         } catch (disconnectError) {
@@ -177,18 +164,21 @@ class AppProvider extends ChangeNotifier {
     };
 
     _bluetoothService.onDisconnected = () {
-      print("📴 Callback onDisconnected appelé");
+      print("🔴 Callback onDisconnected appelé - Fermeture de l'app");
       _connectionStatus = "Déconnecté";
       _isConnecting = false;
-      _isSynchronizing = false; // ✅ AJOUTÉ
+      _isSynchronizing = false;
       notifyListeners();
+
+      // ✅ MODIFICATION : Fermer l'application automatiquement
+      SystemNavigator.pop();
     };
 
     _bluetoothService.onError = (error) {
       print("❌ Erreur Bluetooth: $error");
       _connectionStatus = "Erreur: $error";
       _isConnecting = false;
-      _isSynchronizing = false; // ✅ AJOUTÉ
+      _isSynchronizing = false;
       notifyListeners();
     };
 
@@ -199,7 +189,6 @@ class AppProvider extends ChangeNotifier {
       _receivedDataHistory +=
           "${DateTime.now().toString().substring(11, 19)} - $data\n";
 
-      // Analyser le message reçu
       _parseReceivedMessage(data);
 
       notifyListeners();
@@ -222,10 +211,8 @@ class AppProvider extends ChangeNotifier {
     _connectionStatus = "Connexion en cours...";
     notifyListeners();
 
-    // ✅ Le service va retenter indéfiniment jusqu'au succès
     bool success = await _bluetoothService.connectToDevice();
 
-    // Si on arrive ici avec success=false, c'est une erreur critique
     if (!success) {
       print("❌ Échec critique de la connexion");
       _isConnecting = false;
@@ -233,12 +220,11 @@ class AppProvider extends ChangeNotifier {
       _connectionStatus = "Échec de connexion";
       notifyListeners();
     }
-    // Si success=true, le callback onConnected prendra le relais
   }
 
   /// Déconnexion du dispositif Bluetooth
   Future<void> disconnectBluetooth() async {
-    print("📴 Demande de déconnexion");
+    print("🔴 Demande de déconnexion");
     await _bluetoothService.disconnect();
     _connectionStatus = "Déconnecté";
     _isConnecting = false;
@@ -297,29 +283,44 @@ class AppProvider extends ChangeNotifier {
     _bluetoothService.sendMessage(message);
   }
 
+  /// Ajouter une minute à une horloge (fonction ID 51)
+  void addMinuteToClock(int clockIndex) {
+    if (!_bluetoothService.isConnected) return;
+
+    final message = BluetoothMessageBuilder.buildAddMinuteMessage(clockIndex);
+    _bluetoothService.sendMessage(message);
+    print(">>> Ajout d'une minute à l'horloge $clockIndex");
+  }
+
+  /// Retirer une minute à une horloge (fonction ID 52)
+  void removeMinuteFromClock(int clockIndex) {
+    if (!_bluetoothService.isConnected) return;
+
+    final message = BluetoothMessageBuilder.buildRemoveMinuteMessage(
+      clockIndex,
+    );
+    _bluetoothService.sendMessage(message);
+    print(">>> Retrait d'une minute à l'horloge $clockIndex");
+  }
+
   // Setters
   void setMainSwitchOn(bool value) {
     _mainSwitchOn = value;
 
-    // Si on désactive le switch général, tout désactiver
     if (!value) {
-      // Désactiver les horloges
       _clock1Running = false;
       _clock2Running = false;
       _secondHand1Running = false;
       _secondHand2Running = false;
 
-      // Désactiver les néons
-      _neonMode = 0; // OFF
+      _neonMode = 0;
       _neon1Running = false;
       _neon2Running = false;
 
-      // Envoyer les commandes Bluetooth
-      _sendMainSwitch(); // Envoyer l'état général OFF
-      _sendClockControl(); // Envoyer horloges OFF
-      _sendNeonControl(); // Envoyer néons OFF
+      _sendMainSwitch();
+      _sendClockControl();
+      _sendNeonControl();
     } else {
-      // Si on active le switch général, juste envoyer l'état
       _sendMainSwitch();
     }
 
@@ -328,7 +329,6 @@ class AppProvider extends ChangeNotifier {
 
   // Setters - Clocks
   void setClock1Running(bool value) {
-    // Bloquer si le switch général est désactivé
     if (!_mainSwitchOn) return;
 
     _clock1Running = value;
@@ -340,7 +340,6 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setClock2Running(bool value) {
-    // Bloquer si le switch général est désactivé
     if (!_mainSwitchOn) return;
 
     _clock2Running = value;
@@ -352,7 +351,6 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setSecondHand1Running(bool value) {
-    // Bloquer si le switch général est désactivé
     if (!_mainSwitchOn) return;
 
     _secondHand1Running = value;
@@ -361,7 +359,6 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setSecondHand2Running(bool value) {
-    // Bloquer si le switch général est désactivé
     if (!_mainSwitchOn) return;
 
     _secondHand2Running = value;
@@ -371,7 +368,6 @@ class AppProvider extends ChangeNotifier {
 
   // Setters - Neons
   void setNeonMode(int value) {
-    // Bloquer si le switch général est désactivé
     if (!_mainSwitchOn) return;
 
     if (value >= 0 && value <= 2) {
@@ -382,7 +378,6 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setNeon1Running(bool value) {
-    // Bloquer si le switch général est désactivé
     if (!_mainSwitchOn) return;
 
     _neon1Running = value;
@@ -391,7 +386,6 @@ class AppProvider extends ChangeNotifier {
   }
 
   void setNeon2Running(bool value) {
-    // Bloquer si le switch général est désactivé
     if (!_mainSwitchOn) return;
 
     _neon2Running = value;
@@ -436,30 +430,23 @@ class AppProvider extends ChangeNotifier {
 
   /// Analyse les messages Bluetooth reçus (peut contenir plusieurs messages collés)
   void _parseReceivedMessage(List<int> data) {
-    // Si le message contient plusieurs fonctions collées, les séparer
     int offset = 0;
 
     while (offset < data.length) {
-      // Vérifier qu'il reste au moins 2 bytes (ID + argCount)
       if (offset + 1 >= data.length) break;
 
-      //int functionId = data[offset];
       int argCount = data[offset + 1];
 
-      // Vérifier qu'on a assez de bytes pour ce message
       int messageLength = 2 + argCount;
       if (offset + messageLength > data.length) {
         print("Message incomplet à l'offset $offset");
         break;
       }
 
-      // Extraire le message individuel
       List<int> singleMessage = data.sublist(offset, offset + messageLength);
 
-      // Traiter le message
       _parseSingleMessage(singleMessage);
 
-      // Passer au message suivant
       offset += messageLength;
     }
   }
@@ -472,9 +459,8 @@ class AppProvider extends ChangeNotifier {
 
     int functionId = parsed['functionId'];
 
-    // Traiter selon l'ID de fonction
     switch (functionId) {
-      case 25: // Heure des horloges
+      case 25:
         var clockData = BluetoothMessageParser.parseClockTimeMessage(data);
         if (clockData != null) {
           _clock1Hours = clockData['clock1Hours'];
@@ -486,7 +472,7 @@ class AppProvider extends ChangeNotifier {
         }
         break;
 
-      case 15: // Température
+      case 15:
         var temp = BluetoothMessageParser.parseTemperatureMessage(data);
         if (temp != null) {
           _temperature = temp;
@@ -494,11 +480,10 @@ class AppProvider extends ChangeNotifier {
         }
         break;
 
-      case 100: // Synchronisation complète depuis Arduino
+      case 100:
         _parseSyncMessage(data);
         break;
 
-      // Ajouter d'autres cas ici pour les futures fonctions
       default:
         print("Fonction ID $functionId non gérée");
     }
@@ -515,7 +500,6 @@ class AppProvider extends ChangeNotifier {
 
     print("=== SYNCHRONISATION REÇUE ===");
 
-    // Mettre à jour toutes les variables locales sans envoyer de commandes
     _mainSwitchOn = syncData['general'];
     _clock1Running = syncData['clock1Running'];
     _clock2Running = syncData['clock2Running'];
@@ -525,13 +509,11 @@ class AppProvider extends ChangeNotifier {
     _neon1Running = syncData['neon1Running'];
     _neon2Running = syncData['neon2Running'];
 
-    // ✅ NOUVEAU : Mettre à jour les heures des horloges
     _clock1Hours = syncData['clock1Hours'];
     _clock1Minutes = syncData['clock1Minutes'];
     _clock2Hours = syncData['clock2Hours'];
     _clock2Minutes = syncData['clock2Minutes'];
 
-    // Mettre à jour la programmation
     _neonSchedule = List<List<int>>.from(
       syncData['neonSchedule'].map((item) => List<int>.from(item)),
     );
@@ -546,7 +528,6 @@ class AppProvider extends ChangeNotifier {
     print("  - Programmation: ${_neonSchedule.length} plages");
     print("==============================");
 
-    // ✅ Marquer la synchronisation comme terminée
     _isSynchronizing = false;
 
     notifyListeners();

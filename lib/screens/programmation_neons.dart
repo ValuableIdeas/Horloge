@@ -26,10 +26,10 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
   int _minuteDebut = 0;
   int _heureFin = 0;
   int _minuteFin = 0;
-  int? _jourDebut = 0; // Lundi par défaut
+  int? _jourDebut = 0;
   int? _jourFin = 0;
 
-  int? _editingIndex; // Index de la plage en cours de modification
+  int? _editingIndex;
 
   final List<String> _jours = ['Lu', 'Ma', 'Me', 'Je', 'Ve', 'Sa', 'Di'];
 
@@ -48,8 +48,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Positionner pour que Lu soit le premier jour visible
-      // Chaque item fait 39px (35 + 4 padding), on veut item 500 (qui est Lu) au début
       _jourDebutController.jumpTo(490 * 39.0);
       _jourFinController.jumpTo(490 * 39.0);
     });
@@ -63,41 +61,30 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     });
   }
 
-  // Convertir une plage en minutes totales depuis lundi 00:00
   int _plageToMinutes(int jour, int heure, int minute) {
     return jour * 24 * 60 + heure * 60 + minute;
   }
 
-  // Vérifier si deux plages se chevauchent (en tenant compte de la circularité de la semaine)
   bool _doRangesOverlap(int start1, int end1, int start2, int end2) {
-    // Cas standard : les deux plages sont dans l'ordre chronologique
     if (start1 <= end1 && start2 <= end2) {
       return start1 < end2 && end1 > start2;
     }
 
-    // Cas où la première plage traverse la fin de semaine (ex: Sa-Lu)
     if (start1 > end1) {
-      // La plage 1 va de start1 à dimanche 23:59 ET de lundi 00:00 à end1
-      // Elle chevauche si plage2 touche une de ces deux parties
       if (start2 <= end2) {
-        // Plage 2 normale : chevauche si elle touche la fin OU le début de plage 1
         return (start2 <= end1) || (end2 > start1);
       } else {
-        // Les deux plages traversent la fin de semaine : elles se chevauchent toujours
         return true;
       }
     }
 
-    // Cas où la deuxième plage traverse la fin de semaine
     if (start2 > end2) {
-      // Plage 1 normale, plage 2 traverse : chevauche si plage1 touche une des deux parties
       return (start1 <= end2) || (end1 > start2);
     }
 
     return false;
   }
 
-  // Vérifier les conflits avec les plages existantes
   List<int> _checkConflicts(AppProvider provider, int startMin, int endMin) {
     List<int> conflicts = [];
 
@@ -124,7 +111,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     return conflicts;
   }
 
-  // Fusionner les plages en conflit (en tenant compte de la circularité)
   void _mergeConflicts(
     AppProvider provider,
     List<int> conflicts,
@@ -133,15 +119,12 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     int jourHeureFin,
     int minuteFin,
   ) {
-    // Collecter toutes les plages à fusionner
     List<Map<String, int>> allRanges = [];
 
-    // Ajouter la nouvelle plage
     int newStart = _plageToMinutes(_jourDebut!, _heureDebut, _minuteDebut);
     int newEnd = _plageToMinutes(_jourFin!, _heureFin, _minuteFin);
     allRanges.add({'start': newStart, 'end': newEnd});
 
-    // Ajouter les plages en conflit
     for (int index in conflicts) {
       var plage = provider.neonSchedule[index];
       allRanges.add({
@@ -150,38 +133,26 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
       });
     }
 
-    // Calculer l'union de toutes les plages
     int finalStart = allRanges[0]['start']!;
     int finalEnd = allRanges[0]['end']!;
 
-    // Vérifier si on a des plages circulaires
     bool hasCircular = allRanges.any((r) => r['start']! > r['end']!);
 
     if (!hasCircular) {
-      // Cas simple : aucune plage circulaire
       for (var range in allRanges) {
         if (range['start']! < finalStart) finalStart = range['start']!;
         if (range['end']! > finalEnd) finalEnd = range['end']!;
       }
     } else {
-      // Cas circulaire : au moins une plage traverse dimanche->lundi
-      // Approche : trouver le plus grand "trou" dans la couverture
-      // La plage fusionnée ira du début du trou à la fin du trou
-
       const int WEEK_MINUTES = 7 * 24 * 60;
 
-      // Créer un tableau de couverture minute par minute (simplifié : par tranche de 1 min)
-      // Pour optimiser, on va créer une liste d'événements (début/fin de plage)
       List<Map<String, dynamic>> events = [];
 
       for (var range in allRanges) {
         if (range['start']! <= range['end']!) {
-          // Plage normale
           events.add({'time': range['start']!, 'type': 'start'});
           events.add({'time': range['end']! + 1, 'type': 'end'});
         } else {
-          // Plage circulaire (ex: Sa 22h -> Lu 2h)
-          // Elle couvre [start, fin_semaine] et [0, end]
           events.add({'time': range['start']!, 'type': 'start'});
           events.add({'time': WEEK_MINUTES, 'type': 'end'});
           events.add({'time': 0, 'type': 'start'});
@@ -189,10 +160,8 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
         }
       }
 
-      // Trier les événements par temps
       events.sort((a, b) => a['time'].compareTo(b['time']));
 
-      // Parcourir les événements pour trouver les trous
       int activeRanges = 0;
       int? gapStart;
       int maxGapSize = 0;
@@ -202,7 +171,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
       for (var event in events) {
         if (event['type'] == 'start') {
           if (activeRanges == 0 && gapStart != null) {
-            // Fin d'un trou
             int gapSize = event['time'] - gapStart;
             if (gapSize > maxGapSize) {
               maxGapSize = gapSize;
@@ -215,16 +183,12 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
         } else {
           activeRanges--;
           if (activeRanges == 0) {
-            // Début d'un trou
             gapStart = event['time'];
           }
         }
       }
 
-      // Vérifier s'il y a un trou à la fin qui se connecte au début (circularité)
       if (gapStart != null) {
-        // Il y a un trou qui commence à gapStart et va jusqu'à la fin
-        // Et potentiellement continue au début jusqu'au premier événement
         int firstCoverStart = events.firstWhere(
           (e) => e['type'] == 'start',
         )['time'];
@@ -236,24 +200,19 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
         }
       }
 
-      // La plage fusionnée va de la fin du plus grand trou au début du plus grand trou
       if (maxGapSize > 0) {
         finalStart = maxGapEnd % WEEK_MINUTES;
         finalEnd = (maxGapStart - 1 + WEEK_MINUTES) % WEEK_MINUTES;
       } else {
-        // Aucun trou : toute la semaine est couverte
-        // On prend une plage complète (lundi 0h -> dimanche 23h59)
         finalStart = 0;
         finalEnd = WEEK_MINUTES - 1;
       }
     }
 
-    // Supprimer les plages en conflit
     for (int i = conflicts.length - 1; i >= 0; i--) {
       provider.removeNeonTimeSlot(conflicts[i]);
     }
 
-    // Ajouter la plage fusionnée
     int startJour = finalStart ~/ (24 * 60);
     int startHeure = (finalStart % (24 * 60)) ~/ 60;
     int startMinute = finalStart % 60;
@@ -272,7 +231,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     _sortSchedule(provider);
   }
 
-  // Remplacer les plages en conflit
   void _replaceConflicts(
     AppProvider provider,
     List<int> conflicts,
@@ -281,12 +239,10 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     int jourHeureFin,
     int minuteFin,
   ) {
-    // Supprimer les plages en conflit (en commençant par la fin)
     for (int i = conflicts.length - 1; i >= 0; i--) {
       provider.removeNeonTimeSlot(conflicts[i]);
     }
 
-    // Ajouter la nouvelle plage
     provider.addNeonTimeSlot(
       jourHeureDebut,
       minuteDebut,
@@ -296,7 +252,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     _sortSchedule(provider);
   }
 
-  // Trier les plages par ordre chronologique
   void _sortSchedule(AppProvider provider) {
     provider.neonSchedule.sort((a, b) {
       int startA = _plageToMinutes(a[0] ~/ 24, a[0] % 24, a[1]);
@@ -305,7 +260,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     });
   }
 
-  // Afficher le dialog de conflit
   Future<void> _showConflictDialog(
     AppProvider provider,
     List<int> conflicts,
@@ -395,7 +349,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     int startMin = _plageToMinutes(_jourDebut!, _heureDebut, _minuteDebut);
     int endMin = _plageToMinutes(_jourFin!, _heureFin, _minuteFin);
 
-    // Vérifier les conflits
     List<int> conflicts = _checkConflicts(provider, startMin, endMin);
 
     if (conflicts.isNotEmpty) {
@@ -410,7 +363,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
       return;
     }
 
-    // Si on est en mode édition, supprimer l'ancienne plage
     if (_editingIndex != null) {
       provider.removeNeonTimeSlot(_editingIndex!);
     }
@@ -448,13 +400,11 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
       _minuteFin = plage[3];
     });
 
-    // Mettre à jour les controllers
     _heureDebutController.jumpToItem(_heureDebut);
     _minuteDebutController.jumpToItem(_minuteDebut);
     _heureFinController.jumpToItem(_heureFin);
     _minuteFinController.jumpToItem(_minuteFin);
 
-    // Scroll vers le bon jour (en tenant compte de la position actuelle)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_jourDebutController.hasClients && _jourFinController.hasClients) {
         double currentPosDebut = _jourDebutController.offset;
@@ -629,33 +579,35 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     return '${_jours[jourDebut]} ${heureDebut.toString().padLeft(2, '0')}:${minuteDebut.toString().padLeft(2, '0')} - ${_jours[jourFin]} ${heureFin.toString().padLeft(2, '0')}:${minuteFin.toString().padLeft(2, '0')}';
   }
 
+  // ✅ MODIFICATION : Gestion du retour arrière système
+  Future<bool> _handleBackButton(AppProvider provider) async {
+    provider.sendNeonSchedule();
+    return true; // Permet la navigation
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
 
-    return WillPopScope(
-      onWillPop: () async {
-        final provider = Provider.of<AppProvider>(context, listen: false);
-        provider.sendNeonSchedule();
-        return true;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Programmation'),
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              final provider = Provider.of<AppProvider>(context, listen: false);
-              provider.sendNeonSchedule();
-              Navigator.of(context).pop();
-            },
-          ),
-        ),
-        body: Consumer<AppProvider>(
-          builder: (context, provider, child) {
-            return Column(
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        // ✅ MODIFICATION : WillPopScope gère maintenant le retour système
+        return WillPopScope(
+          onWillPop: () => _handleBackButton(provider),
+          child: Scaffold(
+            appBar: AppBar(
+              title: const Text('Programmation'),
+              backgroundColor: primaryColor,
+              foregroundColor: Colors.white,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  provider.sendNeonSchedule();
+                  Navigator.of(context).pop();
+                },
+              ),
+            ),
+            body: Column(
               children: [
                 Container(
                   margin: const EdgeInsets.all(16),
@@ -695,7 +647,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
                                   ),
-
                                 IconButton(
                                   onPressed: () => _validerPlage(provider),
                                   icon: Icon(
@@ -930,10 +881,10 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
                         ),
                 ),
               ],
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
