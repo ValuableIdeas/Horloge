@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:analog_clock/analog_clock.dart';
 import '../providers/app_provider.dart';
 
 class HorlogesBloc extends StatelessWidget {
@@ -65,25 +66,32 @@ class HorlogesBloc extends StatelessWidget {
                                 : null,
                           ),
                           SizedBox(height: 15),
-                          // Affichage de l'heure
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: primaryColor, width: 2),
-                            ),
-                            child: Text(
-                              provider.clock1TimeString,
-                              style: TextStyle(
-                                color: Colors.greenAccent,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Courier',
-                                letterSpacing: 4,
+                          // ✅ NOUVEAU : Cadran d'horloge analogique
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.35,
+                            height: MediaQuery.of(context).size.width * 0.35,
+                            child: AnalogClock(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              width: MediaQuery.of(context).size.width * 0.35,
+                              isLive: false,
+                              hourHandColor: Colors.black,
+                              minuteHandColor: Colors.black,
+                              showSecondHand: false,
+                              numberColor: Colors.black87,
+                              showNumbers: false,
+                              showTicks: true,
+                              tickColor: Colors.black,
+                              showDigitalClock: false,
+                              datetime: DateTime(
+                                2024,
+                                1,
+                                1,
+                                provider.clock1Hours,
+                                provider.clock1Minutes,
+                                0,
                               ),
                             ),
                           ),
@@ -148,25 +156,32 @@ class HorlogesBloc extends StatelessWidget {
                                 : null,
                           ),
                           SizedBox(height: 15),
-                          // Affichage de l'heure
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: primaryColor, width: 2),
-                            ),
-                            child: Text(
-                              provider.clock2TimeString,
-                              style: TextStyle(
-                                color: Colors.greenAccent,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: 'Courier',
-                                letterSpacing: 4,
+                          // ✅ NOUVEAU : Cadran d'horloge analogique
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.35,
+                            height: MediaQuery.of(context).size.width * 0.35,
+                            child: AnalogClock(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              width: MediaQuery.of(context).size.width * 0.35,
+                              isLive: false,
+                              hourHandColor: Colors.black,
+                              minuteHandColor: Colors.black,
+                              showSecondHand: false,
+                              numberColor: Colors.black87,
+                              showNumbers: false,
+                              showTicks: true,
+                              tickColor: Colors.black,
+                              showDigitalClock: false,
+                              datetime: DateTime(
+                                2024,
+                                1,
+                                1,
+                                provider.clock2Hours,
+                                provider.clock2Minutes,
+                                0,
                               ),
                             ),
                           ),
