@@ -4,8 +4,15 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../providers/app_provider.dart';
 import '../theme.dart';
 
-class LedsBloc extends StatelessWidget {
+class LedsBloc extends StatefulWidget {
   const LedsBloc({super.key});
+
+  @override
+  State<LedsBloc> createState() => _LedsBlocState();
+}
+
+class _LedsBlocState extends State<LedsBloc> {
+  Color? _tempColor; // Couleur temporaire pendant le déplacement
 
   // Couleurs prédéfinies
   static const List<Color> presetColors = [
@@ -18,6 +25,11 @@ class LedsBloc extends StatelessWidget {
     Color(0xFFFFFFFF), // Blanc
     Color(0xFFFFA500), // Orange
   ];
+
+  // Extraire les composantes RGB d'une couleur (méthode non dépréciée)
+  int _getRed(Color color) => ((color.value >> 16) & 0xFF);
+  int _getGreen(Color color) => ((color.value >> 8) & 0xFF);
+  int _getBlue(Color color) => (color.value & 0xFF);
 
   void _showFrequencyDialog(BuildContext context, AppProvider provider) {
     double currentFreq = provider.ledFrequency.toDouble();
@@ -81,12 +93,15 @@ class LedsBloc extends StatelessWidget {
     final secondaryColor = AppTheme.secondaryColor;
 
     return Container(
-      width: 100,
-      height: hasSettings ? 90 : 80,
-      margin: EdgeInsets.all(4),
-      child: Column(
+      width: 110,
+      height: 100,
+      margin: EdgeInsets.all(2),
+      child: Stack(
         children: [
-          Expanded(
+          // Bouton principal
+          SizedBox(
+            width: 110,
+            height: 100,
             child: ElevatedButton(
               onPressed: () => provider.setLedFunction(functionId),
               style: ElevatedButton.styleFrom(
@@ -100,28 +115,39 @@ class LedsBloc extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 24),
-                  SizedBox(height: 4),
+                  Icon(icon, size: 28),
+                  SizedBox(height: 6),
                   Text(
                     label,
-                    style: TextStyle(fontSize: 11),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
                     textAlign: TextAlign.center,
                     maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    overflow: TextOverflow.visible,
                   ),
                 ],
               ),
             ),
           ),
+          // Bouton engrenage en overlay en bas à droite
           if (hasSettings)
-            SizedBox(
-              height: 30,
-              child: IconButton(
-                onPressed: () => _showFrequencyDialog(context, provider),
-                icon: Icon(Icons.settings, size: 18),
-                padding: EdgeInsets.zero,
-                constraints: BoxConstraints(),
-                color: Theme.of(context).primaryColor,
+            Positioned(
+              bottom: 2,
+              right: 2,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => _showFrequencyDialog(context, provider),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).primaryColor.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.settings, size: 18, color: Colors.white),
+                  ),
+                ),
               ),
             ),
         ],
@@ -232,16 +258,16 @@ class LedsBloc extends StatelessWidget {
                   runSpacing: 8,
                   children: presetColors.map((color) {
                     final isSelected =
-                        provider.ledColorR == color.red &&
-                        provider.ledColorG == color.green &&
-                        provider.ledColorB == color.blue;
+                        provider.ledColorR == _getRed(color) &&
+                        provider.ledColorG == _getGreen(color) &&
+                        provider.ledColorB == _getBlue(color);
 
                     return GestureDetector(
                       onTap: () {
                         provider.setLedColor(
-                          color.red,
-                          color.green,
-                          color.blue,
+                          _getRed(color),
+                          _getGreen(color),
+                          _getBlue(color),
                         );
                       },
                       child: Container(
@@ -263,29 +289,49 @@ class LedsBloc extends StatelessWidget {
                 SizedBox(height: 15),
 
                 // Sélecteur de couleur avancé
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SlidePicker(
-                    pickerColor: Color.fromARGB(
-                      255,
-                      provider.ledColorR,
-                      provider.ledColorG,
-                      provider.ledColorB,
+                GestureDetector(
+                  onPanEnd: (_) {
+                    // Au relâchement du doigt, envoyer la couleur
+                    if (_tempColor != null) {
+                      provider.setLedColor(
+                        _getRed(_tempColor!),
+                        _getGreen(_tempColor!),
+                        _getBlue(_tempColor!),
+                      );
+                      setState(() {
+                        _tempColor = null;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    onColorChanged: (Color color) {
-                      provider.setLedColor(color.red, color.green, color.blue);
-                    },
-                    colorModel: ColorModel.rgb,
-                    enableAlpha: false,
-                    displayThumbColor: true,
-                    showLabel: false,
-                    showIndicator: true,
-                    indicatorBorderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(8),
+                    child: SlidePicker(
+                      pickerColor:
+                          _tempColor ??
+                          Color.fromARGB(
+                            255,
+                            provider.ledColorR,
+                            provider.ledColorG,
+                            provider.ledColorB,
+                          ),
+                      onColorChanged: (Color color) {
+                        // Stocker temporairement sans envoyer
+                        setState(() {
+                          _tempColor = color;
+                        });
+                      },
+                      colorModel: ColorModel.rgb,
+                      enableAlpha: false,
+                      displayThumbColor: true,
+                      showLabel: false,
+                      showIndicator: true,
+                      indicatorBorderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(8),
+                      ),
                     ),
                   ),
                 ),

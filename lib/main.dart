@@ -1,336 +1,205 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:horloge/widgets/interrupteur_general.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-import '../providers/app_provider.dart';
-import '../theme.dart';
+import 'providers/app_provider.dart';
+import 'theme.dart';
+import 'widgets/horloges_bloc.dart';
+import 'widgets/neons_bloc.dart';
+import 'widgets/leds_bloc.dart';
+import 'widgets/temperature_display.dart';
+import 'screens/connection_screen.dart';
+import 'screens/advanced_zone.dart';
+import 'screens/info_screen.dart';
+import 'widgets/loading_overlay.dart';
 
-class LedsBloc extends StatefulWidget {
-  const LedsBloc({super.key});
-
-  @override
-  State<LedsBloc> createState() => _LedsBlocState();
+void main() {
+  runApp(
+    ChangeNotifierProvider(create: (_) => AppProvider(), child: const MyApp()),
+  );
 }
 
-class _LedsBlocState extends State<LedsBloc> {
-  Color? _tempColor; // Couleur temporaire pendant le déplacement
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
-  // Couleurs prédéfinies
-  static const List<Color> presetColors = [
-    Color(0xFFFF0000), // Rouge
-    Color(0xFF00FF00), // Vert
-    Color(0xFF0000FF), // Bleu
-    Color(0xFFFFFF00), // Jaune
-    Color(0xFF00FFFF), // Cyan
-    Color(0xFFFF00FF), // Magenta
-    Color(0xFFFFFFFF), // Blanc
-    Color(0xFFFFA500), // Orange
-  ];
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(theme: AppTheme.theme, home: const HomePage());
+  }
+}
 
-  void _showFrequencyDialog(BuildContext context, AppProvider provider) {
-    double currentFreq = provider.ledFrequency.toDouble();
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
 
-    showDialog(
+  // ✅ NOUVEAU : Afficher le dialog de code PIN
+  Future<void> _showPinDialog(BuildContext context) async {
+    final TextEditingController pinController = TextEditingController();
+    final primaryColor = Theme.of(context).primaryColor;
+    final FocusNode focusNode = FocusNode();
+
+    // Auto-focus après un court délai pour faire apparaître le clavier
+    Future.delayed(Duration(milliseconds: 100), () {
+      focusNode.requestFocus();
+    });
+
+    return showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Fréquence de clignotement'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Slider(
-                    value: currentFreq,
-                    min: 0,
-                    max: 255,
-                    divisions: 255,
-                    onChanged: (value) {
-                      setState(() {
-                        currentFreq = value;
-                      });
-                    },
-                  ),
-                ],
+        return AlertDialog(
+          title: Text('Code d\'accès', style: TextStyle(color: primaryColor)),
+          content: TextField(
+            controller: pinController,
+            focusNode: focusNode,
+            keyboardType: TextInputType.number,
+            maxLength: 4,
+            obscureText: true,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Entrez le code PIN',
+              counterText: '',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Annuler'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    provider.setLedFrequency(currentFreq.round());
-                    Navigator.of(dialogContext).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('Valider'),
-                ),
-              ],
-            );
-          },
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: primaryColor, width: 2),
+              ),
+            ),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                focusNode.dispose();
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (pinController.text == '1830') {
+                  focusNode.dispose();
+                  Navigator.of(dialogContext).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AdvancedZone(),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Code incorrect'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                  focusNode.dispose();
+                  Navigator.of(dialogContext).pop();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Valider'),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildFunctionButton({
-    required BuildContext context,
-    required AppProvider provider,
-    required int functionId,
-    required String label,
-    required IconData icon,
-    bool hasSettings = false,
-  }) {
-    final isSelected = provider.ledFunction == functionId;
-    final secondaryColor = AppTheme.secondaryColor;
-
-    return Container(
-      width: 110,
-      height: 100,
-      margin: EdgeInsets.all(2),
-      child: Stack(
-        children: [
-          // Bouton principal
-          SizedBox(
-            width: 110,
-            height: 100,
-            child: ElevatedButton(
-              onPressed: () => provider.setLedFunction(functionId),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isSelected ? secondaryColor : Colors.white,
-                foregroundColor: isSelected ? Colors.white : Colors.black87,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(icon, size: 28),
-                  SizedBox(height: 6),
-                  Text(
-                    label,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.visible,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Bouton engrenage en overlay en bas à droite
-          if (hasSettings)
-            Positioned(
-              bottom: 2,
-              right: 2,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => _showFrequencyDialog(context, provider),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.settings, size: 18, color: Colors.white),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
-
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        // Vérifier si la fonction nécessite un sélecteur de couleur
-        final needsColorPicker =
-            provider.ledFunction != 4; // Pas pour arc-en-ciel
-
-        return Container(
-          decoration: BoxDecoration(
-            color: primaryColor,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          padding: EdgeInsets.all(10.0),
-          child: Column(
+        return Scaffold(
+          body: Stack(
             children: [
-              // Titre
-              const Text(
-                'LEDS',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              SizedBox(height: 10),
-
-              // ToggleButtons : Off / On / Suivi néons
-              ToggleButtons(
-                borderRadius: const BorderRadius.all(Radius.circular(8)),
-                selectedBorderColor: Colors.white,
-                selectedColor: primaryColor,
-                fillColor: Colors.white,
-                color: Colors.white,
-                borderColor: Colors.white70,
-                constraints: const BoxConstraints(
-                  minHeight: 40.0,
-                  minWidth: 80.0,
-                ),
-                isSelected: [
-                  provider.ledState == 0,
-                  provider.ledState == 1,
-                  provider.ledState == 2,
-                ],
-                onPressed: (int index) {
-                  provider.setLedState(index);
-                },
-                children: const [Text('OFF'), Text('ON'), Text('SUIVI')],
-              ),
-
-              SizedBox(height: 15),
-
-              // Boutons de fonction LED
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 0,
-                runSpacing: 0,
+              // Contenu principal
+              ListView(
+                padding: EdgeInsets.all(20.0),
                 children: [
-                  _buildFunctionButton(
-                    context: context,
-                    provider: provider,
-                    functionId: 1,
-                    label: 'Couleur\nunie',
-                    icon: Icons.circle,
+                  Center(
+                    child: Text(
+                      "Horloge SNCB",
+                      style: GoogleFonts.alfaSlabOne(
+                        color: Theme.of(context).primaryColor,
+                        fontSize: 25,
+                      ),
+                    ),
                   ),
-                  _buildFunctionButton(
-                    context: context,
-                    provider: provider,
-                    functionId: 2,
-                    label: 'Clignotant',
-                    icon: Icons.flash_on,
-                    hasSettings: true,
-                  ),
-                  _buildFunctionButton(
-                    context: context,
-                    provider: provider,
-                    functionId: 3,
-                    label: 'Fondu',
-                    icon: Icons.blur_circular,
-                  ),
-                  _buildFunctionButton(
-                    context: context,
-                    provider: provider,
-                    functionId: 4,
-                    label: 'Arc-en-ciel',
-                    icon: Icons.palette,
-                  ),
+                  SizedBox(height: 10),
+                  const InterrupteurGeneralBloc(),
+                  SizedBox(height: 10),
+                  const HorlogesBloc(),
+                  SizedBox(height: 10),
+                  const NeonsBloc(),
+                  SizedBox(height: 10),
+                  const LedsBloc(),
+                  SizedBox(height: 10),
+                  const TemperatureDisplay(),
+                  SizedBox(height: 10),
+                  // ✅ SUPPRIMÉ : BluetoothDataDisplay (déplacé vers Zone Avancée)
+                  // const BluetoothDataDisplay(),
+
+                  // ✅ NOUVEAU : Boutons Zone Avancée et Info
+                  if (provider.isConnected)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => _showPinDialog(context),
+                              icon: Icon(Icons.lock_outline),
+                              label: const Text('Zone Avancée'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Theme.of(context).primaryColor,
+                                side: BorderSide(
+                                  color: Theme.of(context).primaryColor,
+                                  width: 2,
+                                ),
+                                padding: EdgeInsets.symmetric(vertical: 15),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          OutlinedButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const InfoScreen(),
+                                ),
+                              );
+                            },
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Theme.of(context).primaryColor,
+                              side: BorderSide(
+                                color: Theme.of(context).primaryColor,
+                                width: 2,
+                              ),
+                              padding: EdgeInsets.all(15),
+                              minimumSize: Size(60, 50),
+                            ),
+                            child: Icon(Icons.info_outline, size: 24),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  SizedBox(height: 20),
                 ],
               ),
 
-              // Sélecteur de couleur (seulement si nécessaire)
-              if (needsColorPicker) ...[
-                SizedBox(height: 15),
+              // Overlay de chargement (synchronisation)
+              const LoadingOverlay(),
 
-                // Ligne de couleurs prédéfinies
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: presetColors.map((color) {
-                    final isSelected =
-                        provider.ledColorR == color.red &&
-                        provider.ledColorG == color.green &&
-                        provider.ledColorB == color.blue;
-
-                    return GestureDetector(
-                      onTap: () {
-                        provider.setLedColor(
-                          color.red,
-                          color.green,
-                          color.blue,
-                        );
-                      },
-                      child: Container(
-                        width: 35,
-                        height: 35,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected ? Colors.white : Colors.white54,
-                            width: isSelected ? 3 : 1,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-
-                SizedBox(height: 15),
-
-                // Sélecteur de couleur avancé
-                GestureDetector(
-                  onPanEnd: (_) {
-                    // Au relâchement du doigt, envoyer la couleur
-                    if (_tempColor != null) {
-                      provider.setLedColor(
-                        _tempColor!.red,
-                        _tempColor!.green,
-                        _tempColor!.blue,
-                      );
-                      setState(() {
-                        _tempColor = null;
-                      });
-                    }
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SlidePicker(
-                      pickerColor:
-                          _tempColor ??
-                          Color.fromARGB(
-                            255,
-                            provider.ledColorR,
-                            provider.ledColorG,
-                            provider.ledColorB,
-                          ),
-                      onColorChanged: (Color color) {
-                        // Stocker temporairement sans envoyer
-                        setState(() {
-                          _tempColor = color;
-                        });
-                      },
-                      colorModel: ColorModel.rgb,
-                      enableAlpha: false,
-                      displayThumbColor: true,
-                      showLabel: false,
-                      showIndicator: true,
-                      indicatorBorderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              // Écran de connexion par-dessus tout
+              const ConnectionScreen(),
             ],
           ),
         );
