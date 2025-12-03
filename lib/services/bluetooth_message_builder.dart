@@ -121,4 +121,47 @@ class BluetoothMessageBuilder {
       clockIndex, // 0 ou 1
     ];
   }
+
+  /// ✅ NOUVEAU - ID de fonction 4: Gestion des LEDs
+  /// Args: état (0/1/2), sous-fonction (1-4), RGB (optionnel), paramètre (optionnel)
+  static List<int> buildLedControlMessage({
+    required int state,
+    required int functionId,
+    int r = 0,
+    int g = 0,
+    int b = 0,
+    int parameter = 0,
+  }) {
+    List<int> message = [
+      4, // ID fonction
+    ];
+
+    // Fonction 4 (arc-en-ciel) : pas de RGB ni paramètre
+    if (functionId == 4) {
+      message.add(2); // Nombre d'arguments
+      message.add(state);
+      message.add(functionId);
+    }
+    // Fonction 2 (clignotant) : RGB + paramètre fréquence
+    else if (functionId == 2) {
+      message.add(6); // Nombre d'arguments
+      message.add(state);
+      message.add(functionId);
+      message.add(r);
+      message.add(g);
+      message.add(b);
+      message.add(parameter);
+    }
+    // Fonctions 1 (uni) et 3 (fondu) : RGB uniquement
+    else {
+      message.add(5); // Nombre d'arguments
+      message.add(state);
+      message.add(functionId);
+      message.add(r);
+      message.add(g);
+      message.add(b);
+    }
+
+    return message;
+  }
 }

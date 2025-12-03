@@ -12,11 +12,11 @@ class AppTheme {
     ),
   );
   static const Color primaryBlue = Color.fromARGB(255, 58, 153, 230);
+  static const Color secondaryColor = Color.fromARGB(255, 100, 180, 230);
 
   static ThemeData get theme {
     return ThemeData(
       primaryColor: const Color.fromARGB(255, 230, 58, 150),
-      //primaryColor: customColor,
       colorScheme: ColorScheme.fromSeed(
         seedColor: const Color.fromARGB(255, 0, 255, 255),
       ),

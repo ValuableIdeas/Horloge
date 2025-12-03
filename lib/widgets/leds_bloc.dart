@@ -4,15 +4,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import '../providers/app_provider.dart';
 import '../theme.dart';
 
-class LedsBloc extends StatefulWidget {
+class LedsBloc extends StatelessWidget {
   const LedsBloc({super.key});
-
-  @override
-  State<LedsBloc> createState() => _LedsBlocState();
-}
-
-class _LedsBlocState extends State<LedsBloc> {
-  Color? _tempColor; // Couleur temporaire pendant le déplacement
 
   // Couleurs prédéfinies
   static const List<Color> presetColors = [
@@ -88,15 +81,12 @@ class _LedsBlocState extends State<LedsBloc> {
     final secondaryColor = AppTheme.secondaryColor;
 
     return Container(
-      width: 110,
-      height: 100,
-      margin: EdgeInsets.all(2),
-      child: Stack(
+      width: 100,
+      height: hasSettings ? 90 : 80,
+      margin: EdgeInsets.all(4),
+      child: Column(
         children: [
-          // Bouton principal
-          SizedBox(
-            width: 110,
-            height: 100,
+          Expanded(
             child: ElevatedButton(
               onPressed: () => provider.setLedFunction(functionId),
               style: ElevatedButton.styleFrom(
@@ -110,39 +100,28 @@ class _LedsBlocState extends State<LedsBloc> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, size: 28),
-                  SizedBox(height: 6),
+                  Icon(icon, size: 24),
+                  SizedBox(height: 4),
                   Text(
                     label,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 11),
                     textAlign: TextAlign.center,
                     maxLines: 2,
-                    overflow: TextOverflow.visible,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
           ),
-          // Bouton engrenage en overlay en bas à droite
           if (hasSettings)
-            Positioned(
-              bottom: 2,
-              right: 2,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => _showFrequencyDialog(context, provider),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(Icons.settings, size: 18, color: Colors.white),
-                  ),
-                ),
+            SizedBox(
+              height: 30,
+              child: IconButton(
+                onPressed: () => _showFrequencyDialog(context, provider),
+                icon: Icon(Icons.settings, size: 18),
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints(),
+                color: Theme.of(context).primaryColor,
               ),
             ),
         ],
@@ -284,49 +263,29 @@ class _LedsBlocState extends State<LedsBloc> {
                 SizedBox(height: 15),
 
                 // Sélecteur de couleur avancé
-                GestureDetector(
-                  onPanEnd: (_) {
-                    // Au relâchement du doigt, envoyer la couleur
-                    if (_tempColor != null) {
-                      provider.setLedColor(
-                        _tempColor!.red,
-                        _tempColor!.green,
-                        _tempColor!.blue,
-                      );
-                      setState(() {
-                        _tempColor = null;
-                      });
-                    }
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SlidePicker(
+                    pickerColor: Color.fromARGB(
+                      255,
+                      provider.ledColorR,
+                      provider.ledColorG,
+                      provider.ledColorB,
                     ),
-                    child: SlidePicker(
-                      pickerColor:
-                          _tempColor ??
-                          Color.fromARGB(
-                            255,
-                            provider.ledColorR,
-                            provider.ledColorG,
-                            provider.ledColorB,
-                          ),
-                      onColorChanged: (Color color) {
-                        // Stocker temporairement sans envoyer
-                        setState(() {
-                          _tempColor = color;
-                        });
-                      },
-                      colorModel: ColorModel.rgb,
-                      enableAlpha: false,
-                      displayThumbColor: true,
-                      showLabel: false,
-                      showIndicator: true,
-                      indicatorBorderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(8),
-                      ),
+                    onColorChanged: (Color color) {
+                      provider.setLedColor(color.red, color.green, color.blue);
+                    },
+                    colorModel: ColorModel.rgb,
+                    enableAlpha: false,
+                    displayThumbColor: true,
+                    showLabel: false,
+                    showIndicator: true,
+                    indicatorBorderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(8),
                     ),
                   ),
                 ),

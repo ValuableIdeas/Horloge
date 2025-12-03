@@ -23,6 +23,14 @@ class AppProvider extends ChangeNotifier {
   // Neon programming (for Bluetooth function ID 3)
   List<List<int>> _neonSchedule = [];
 
+  // LED variables (for Bluetooth function ID 4)
+  int _ledState = 0; // 0: off, 1: on, 2: suivi néons
+  int _ledFunction = 1; // 1: uni, 2: clignotant, 3: fondu, 4: arc-en-ciel
+  int _ledColorR = 255;
+  int _ledColorG = 0;
+  int _ledColorB = 0;
+  int _ledFrequency = 128; // Pour la fonction clignotant (0-255)
+
   // Variables for time setting (for Bluetooth function ID 50)
   DateTime _clockDateTime = DateTime.now();
 
@@ -78,6 +86,14 @@ class AppProvider extends ChangeNotifier {
   bool get neon1Running => _neon1Running;
   bool get neon2Running => _neon2Running;
   List<List<int>> get neonSchedule => _neonSchedule;
+
+  // Getters - LEDs
+  int get ledState => _ledState;
+  int get ledFunction => _ledFunction;
+  int get ledColorR => _ledColorR;
+  int get ledColorG => _ledColorG;
+  int get ledColorB => _ledColorB;
+  int get ledFrequency => _ledFrequency;
 
   // Getters - Date/Time
   DateTime get clockDateTime => _clockDateTime;
@@ -301,6 +317,55 @@ class AppProvider extends ChangeNotifier {
     );
     _bluetoothService.sendMessage(message);
     print(">>> Retrait d'une minute à l'horloge $clockIndex");
+  }
+
+  /// Envoi de la commande de gestion des LEDs (fonction ID 4)
+  void _sendLedControl() {
+    if (!_bluetoothService.isConnected) return;
+
+    final message = BluetoothMessageBuilder.buildLedControlMessage(
+      state: _ledState,
+      functionId: _ledFunction,
+      r: _ledColorR,
+      g: _ledColorG,
+      b: _ledColorB,
+      parameter: _ledFrequency,
+    );
+    _bluetoothService.sendMessage(message);
+    print(">>> Commande LED envoyée: état=$_ledState, fonction=$_ledFunction");
+  }
+
+  // Setters - LEDs
+  void setLedState(int value) {
+    if (value >= 0 && value <= 2) {
+      _ledState = value;
+      _sendLedControl();
+      notifyListeners();
+    }
+  }
+
+  void setLedFunction(int value) {
+    if (value >= 1 && value <= 4) {
+      _ledFunction = value;
+      _sendLedControl();
+      notifyListeners();
+    }
+  }
+
+  void setLedColor(int r, int g, int b) {
+    _ledColorR = r;
+    _ledColorG = g;
+    _ledColorB = b;
+    _sendLedControl();
+    notifyListeners();
+  }
+
+  void setLedFrequency(int value) {
+    if (value >= 0 && value <= 255) {
+      _ledFrequency = value;
+      _sendLedControl();
+      notifyListeners();
+    }
   }
 
   // Setters
