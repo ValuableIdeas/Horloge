@@ -32,7 +32,6 @@ class MyApp extends StatelessWidget {
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
-  // ✅ NOUVEAU : Afficher le dialog de code PIN
   Future<void> _showPinDialog(BuildContext context) async {
     final TextEditingController pinController = TextEditingController();
     final primaryColor = Theme.of(context).primaryColor;
@@ -142,10 +141,6 @@ class HomePage extends StatelessWidget {
                   SizedBox(height: 10),
                   const TemperatureDisplay(),
                   SizedBox(height: 10),
-                  // ✅ SUPPRIMÉ : BluetoothDataDisplay (déplacé vers Zone Avancée)
-                  // const BluetoothDataDisplay(),
-
-                  // ✅ NOUVEAU : Boutons Zone Avancée et Info
                   if (provider.isConnected)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),

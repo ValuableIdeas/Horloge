@@ -583,6 +583,13 @@ class AppProvider extends ChangeNotifier {
       syncData['neonSchedule'].map((item) => List<int>.from(item)),
     );
 
+    _ledState = syncData['ledState'];
+    _ledFunction = syncData['ledFunction'];
+    _ledColorR = syncData['ledR'];
+    _ledColorG = syncData['ledG'];
+    _ledColorB = syncData['ledB'];
+    _ledFrequency = syncData['ledFrequency'];
+
     print("État après synchronisation :");
     print("  - Interrupteur général: $_mainSwitchOn");
     print("  - Horloges: H1=$_clock1Running H2=$_clock2Running");
@@ -591,6 +598,9 @@ class AppProvider extends ChangeNotifier {
     print("  - Néons mode: $_neonMode");
     print("  - Néons actifs: N1=$_neon1Running N2=$_neon2Running");
     print("  - Programmation: ${_neonSchedule.length} plages");
+    print(
+      "  - LEDs: état=$_ledState, fonction=$_ledFunction, RGB=($_ledColorR,$_ledColorG,$_ledColorB), fréquence=$_ledFrequency",
+    );
     print("==============================");
 
     _isSynchronizing = false;

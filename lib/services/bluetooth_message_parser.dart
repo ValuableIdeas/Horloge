@@ -143,7 +143,6 @@ class BluetoothMessageParser {
     int hour1 = args[11];
     int minute1 = args[12];
 
-    // ✅ NOUVEAU : Paramètres LED (bytes 13-18)
     int ledState = args[13];
     int ledFunction = args[14];
     int ledR = args[15];
@@ -197,7 +196,6 @@ class BluetoothMessageParser {
       'clock1Minutes': minute0,
       'clock2Hours': hour1,
       'clock2Minutes': minute1,
-      // ✅ NOUVEAU : Paramètres LED
       'ledState': ledState,
       'ledFunction': ledFunction,
       'ledR': ledR,
