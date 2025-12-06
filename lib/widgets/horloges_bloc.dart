@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:analog_clock/analog_clock.dart';
 import '../providers/app_provider.dart';
+import '../theme.dart';
 
 class HorlogesBloc extends StatelessWidget {
   const HorlogesBloc({super.key});
@@ -9,6 +10,7 @@ class HorlogesBloc extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+    final secondaryColor = AppTheme.secondaryColor;
 
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
@@ -64,9 +66,11 @@ class HorlogesBloc extends StatelessWidget {
                             onChanged: provider.mainSwitchOn
                                 ? (v) => provider.setClock1Running(v)
                                 : null,
+                            activeColor: secondaryColor,
+                            activeTrackColor: secondaryColor.withOpacity(0.5),
                           ),
                           SizedBox(height: 15),
-                          // ✅ NOUVEAU : Cadran d'horloge analogique
+                          // Cadran d'horloge analogique
                           SizedBox(
                             width: MediaQuery.of(context).size.width * 0.35,
                             height: MediaQuery.of(context).size.width * 0.35,
@@ -120,6 +124,10 @@ class HorlogesBloc extends StatelessWidget {
                                           provider.mainSwitchOn)
                                       ? (v) => provider.setSecondHand1Running(v)
                                       : null,
+                                  activeColor: secondaryColor,
+                                  activeTrackColor: secondaryColor.withOpacity(
+                                    0.5,
+                                  ),
                                 ),
                               ],
                             ),
@@ -154,9 +162,11 @@ class HorlogesBloc extends StatelessWidget {
                             onChanged: provider.mainSwitchOn
                                 ? (v) => provider.setClock2Running(v)
                                 : null,
+                            activeColor: secondaryColor,
+                            activeTrackColor: secondaryColor.withOpacity(0.5),
                           ),
                           SizedBox(height: 15),
-                          // ✅ NOUVEAU : Cadran d'horloge analogique
+                          // Cadran d'horloge analogique
                           SizedBox(
                             width: MediaQuery.of(context).size.width * 0.35,
                             height: MediaQuery.of(context).size.width * 0.35,
@@ -210,6 +220,10 @@ class HorlogesBloc extends StatelessWidget {
                                           provider.mainSwitchOn)
                                       ? (v) => provider.setSecondHand2Running(v)
                                       : null,
+                                  activeColor: secondaryColor,
+                                  activeTrackColor: secondaryColor.withOpacity(
+                                    0.5,
+                                  ),
                                 ),
                               ],
                             ),

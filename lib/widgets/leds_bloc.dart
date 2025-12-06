@@ -13,7 +13,8 @@ class LedsBloc extends StatefulWidget {
 
 class _LedsBlocState extends State<LedsBloc> {
   Color? _tempColor; // Couleur temporaire pendant le déplacement
-  bool _isDragging = false; // Flag pour savoir si l'utilisateur est en train de déplacer
+  bool _isDragging =
+      false; // Flag pour savoir si l'utilisateur est en train de déplacer
 
   // Couleurs prédéfinies
   static const List<Color> presetColors = [
@@ -132,7 +133,7 @@ class _LedsBlocState extends State<LedsBloc> {
           // Bouton engrenage en overlay en bas à droite
           if (hasSettings)
             Positioned(
-              bottom: 2,
+              top: 2,
               right: 2,
               child: Material(
                 color: Colors.transparent,
@@ -146,11 +147,7 @@ class _LedsBlocState extends State<LedsBloc> {
                       color: Theme.of(context).primaryColor.withOpacity(0.9),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      Icons.settings,
-                      size: 18,
-                      color: Colors.white,
-                    ),
+                    child: Icon(Icons.settings, size: 18, color: Colors.white),
                   ),
                 ),
               ),
@@ -167,7 +164,8 @@ class _LedsBlocState extends State<LedsBloc> {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         // Vérifier si la fonction nécessite un sélecteur de couleur
-        final needsColorPicker = provider.ledFunction != 4; // Pas pour arc-en-ciel
+        final needsColorPicker =
+            provider.ledFunction != 4; // Pas pour arc-en-ciel
 
         return Container(
           decoration: BoxDecoration(
@@ -208,11 +206,7 @@ class _LedsBlocState extends State<LedsBloc> {
                 onPressed: (int index) {
                   provider.setLedState(index);
                 },
-                children: const [
-                  Text('OFF'),
-                  Text('ON'),
-                  Text('SUIVI'),
-                ],
+                children: const [Text('OFF'), Text('ON'), Text('SUIVI')],
               ),
 
               SizedBox(height: 15),
@@ -265,7 +259,8 @@ class _LedsBlocState extends State<LedsBloc> {
                   spacing: 8,
                   runSpacing: 8,
                   children: presetColors.map((color) {
-                    final isSelected = provider.ledColorR == _getRed(color) &&
+                    final isSelected =
+                        provider.ledColorR == _getRed(color) &&
                         provider.ledColorG == _getGreen(color) &&
                         provider.ledColorB == _getBlue(color);
 
@@ -312,7 +307,9 @@ class _LedsBlocState extends State<LedsBloc> {
                         _getGreen(_tempColor!),
                         _getBlue(_tempColor!),
                       );
-                      print("✅ Couleur envoyée au relâchement: RGB(${_getRed(_tempColor!)}, ${_getGreen(_tempColor!)}, ${_getBlue(_tempColor!)})");
+                      print(
+                        "✅ Couleur envoyée au relâchement: RGB(${_getRed(_tempColor!)}, ${_getGreen(_tempColor!)}, ${_getBlue(_tempColor!)})",
+                      );
                     }
                     setState(() {
                       _isDragging = false;
@@ -326,7 +323,8 @@ class _LedsBlocState extends State<LedsBloc> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: SlidePicker(
-                      pickerColor: _tempColor ??
+                      pickerColor:
+                          _tempColor ??
                           Color.fromARGB(
                             255,
                             provider.ledColorR,
@@ -339,16 +337,20 @@ class _LedsBlocState extends State<LedsBloc> {
                           setState(() {
                             _tempColor = color;
                           });
-                          print("🎨 Couleur déplacée (non envoyée): RGB(${_getRed(color)}, ${_getGreen(color)}, ${_getBlue(color)})");
+                          print(
+                            "🎨 Couleur déplacée (non envoyée): RGB(${_getRed(color)}, ${_getGreen(color)}, ${_getBlue(color)})",
+                          );
                         }
                       },
                       colorModel: ColorModel.rgb,
                       enableAlpha: false,
                       displayThumbColor: true,
-                      labelTypes: const [], // Désactiver les labels (déprécié showLabel)
+                      labelTypes:
+                          const [], // Désactiver les labels (déprécié showLabel)
                       showIndicator: true,
-                      indicatorBorderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(8)),
+                      indicatorBorderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(8),
+                      ),
                     ),
                   ),
                 ),

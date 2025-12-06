@@ -52,6 +52,9 @@ class AppProvider extends ChangeNotifier {
   // Température reçue depuis Arduino
   double _temperature = 0.0;
 
+  // Mémorisation du code PIN validé pendant la session
+  bool _isPinValidated = false;
+
   // Getters
   bool get mainSwitchOn => _mainSwitchOn;
   BluetoothService get bluetoothService => _bluetoothService;
@@ -97,6 +100,9 @@ class AppProvider extends ChangeNotifier {
 
   // Getters - Date/Time
   DateTime get clockDateTime => _clockDateTime;
+
+  // Getter pour le code PIN
+  bool get isPinValidated => _isPinValidated;
 
   AppProvider() {
     _setupBluetoothCallbacks();
@@ -184,9 +190,11 @@ class AppProvider extends ChangeNotifier {
       _connectionStatus = "Déconnecté";
       _isConnecting = false;
       _isSynchronizing = false;
+      // Réinitialiser le PIN lors de la déconnexion
+      _isPinValidated = false;
       notifyListeners();
 
-      // ✅ MODIFICATION : Fermer l'application automatiquement
+      // Fermer l'application automatiquement
       SystemNavigator.pop();
     };
 
@@ -245,6 +253,8 @@ class AppProvider extends ChangeNotifier {
     _connectionStatus = "Déconnecté";
     _isConnecting = false;
     _isSynchronizing = false;
+    // Réinitialiser le PIN lors de la déconnexion
+    _isPinValidated = false;
     notifyListeners();
   }
 
@@ -484,6 +494,12 @@ class AppProvider extends ChangeNotifier {
   // Setter - Date/Time
   void setClockDateTime(DateTime dateTime) {
     _clockDateTime = dateTime;
+    notifyListeners();
+  }
+
+  // Setter pour valider le PIN
+  void validatePin() {
+    _isPinValidated = true;
     notifyListeners();
   }
 

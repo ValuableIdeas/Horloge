@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../theme.dart';
 
 class ProgrammationNeons extends StatefulWidget {
   const ProgrammationNeons({super.key});
@@ -268,6 +269,8 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     int jourHeureFin,
     int minuteFin,
   ) async {
+    final secondaryColor = AppTheme.secondaryColor;
+
     return showDialog(
       context: context,
       barrierDismissible: false,
@@ -303,7 +306,7 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
                   ),
                 );
               },
-              child: const Text('Fusionner'),
+              child: Text('Fusionner', style: TextStyle(color: secondaryColor)),
             ),
             TextButton(
               onPressed: () {
@@ -324,7 +327,7 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
                   ),
                 );
               },
-              child: const Text('Remplacer'),
+              child: Text('Remplacer', style: TextStyle(color: secondaryColor)),
             ),
           ],
         );
@@ -423,6 +426,8 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
   }
 
   Future<void> _showDeleteAllDialog(AppProvider provider) async {
+    final secondaryColor = AppTheme.secondaryColor;
+
     return showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -447,10 +452,7 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
                   ),
                 );
               },
-              child: Text(
-                'Supprimer',
-                style: TextStyle(color: Theme.of(context).primaryColor),
-              ),
+              child: Text('Supprimer', style: TextStyle(color: secondaryColor)),
             ),
           ],
         );
@@ -579,10 +581,9 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
     return '${_jours[jourDebut]} ${heureDebut.toString().padLeft(2, '0')}:${minuteDebut.toString().padLeft(2, '0')} - ${_jours[jourFin]} ${heureFin.toString().padLeft(2, '0')}:${minuteFin.toString().padLeft(2, '0')}';
   }
 
-  // ✅ MODIFICATION : Gestion du retour arrière système
   Future<bool> _handleBackButton(AppProvider provider) async {
     provider.sendNeonSchedule();
-    return true; // Permet la navigation
+    return true;
   }
 
   @override
@@ -591,7 +592,6 @@ class _ProgrammationNeonsState extends State<ProgrammationNeons> {
 
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
-        // ✅ MODIFICATION : WillPopScope gère maintenant le retour système
         return WillPopScope(
           onWillPop: () => _handleBackButton(provider),
           child: Scaffold(

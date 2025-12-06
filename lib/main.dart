@@ -32,7 +32,19 @@ class MyApp extends StatelessWidget {
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  // Vérifier si le PIN est déjà validé avant d'afficher le dialog
   Future<void> _showPinDialog(BuildContext context) async {
+    final provider = Provider.of<AppProvider>(context, listen: false);
+
+    // Si le PIN est déjà validé dans cette session, accéder directement
+    if (provider.isPinValidated) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AdvancedZone()),
+      );
+      return;
+    }
+
     final TextEditingController pinController = TextEditingController();
     final primaryColor = Theme.of(context).primaryColor;
     final FocusNode focusNode = FocusNode();
@@ -80,6 +92,7 @@ class HomePage extends StatelessWidget {
                 if (pinController.text == '1830') {
                   focusNode.dispose();
                   Navigator.of(dialogContext).pop();
+                  provider.validatePin();
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -141,6 +154,8 @@ class HomePage extends StatelessWidget {
                   SizedBox(height: 10),
                   const TemperatureDisplay(),
                   SizedBox(height: 10),
+
+                  // Boutons Zone Avancée et Info
                   if (provider.isConnected)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),

@@ -32,7 +32,7 @@ class TemperatureDisplay extends StatelessWidget {
 
               // Affichage de la température
               Container(
-                padding: EdgeInsets.all(20),
+                padding: EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
@@ -46,7 +46,7 @@ class TemperatureDisplay extends StatelessWidget {
                       '${provider.temperature.toStringAsFixed(1)}°C',
                       style: TextStyle(
                         color: primaryColor,
-                        fontSize: 36,
+                        fontSize: 30,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'Courier',
                       ),

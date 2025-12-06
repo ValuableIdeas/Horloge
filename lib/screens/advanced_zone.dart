@@ -38,7 +38,7 @@ class AdvancedZone extends StatelessWidget {
                     SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Zone réservée aux utilisateurs avancés',
+                        'Pour utilisateurs avancés',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -52,7 +52,7 @@ class AdvancedZone extends StatelessWidget {
 
               SizedBox(height: 20),
 
-              // ✅ NOUVEAU : Zone de réglage des minutes
+              // Zone de réglage des minutes
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor,
@@ -202,12 +202,6 @@ class AdvancedZone extends StatelessWidget {
 
               SizedBox(height: 20),
 
-              // Terminal de debug
-              const BluetoothDataDisplay(),
-
-              SizedBox(height: 20),
-
-              // Informations système
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor,
@@ -261,8 +255,38 @@ class AdvancedZone extends StatelessWidget {
                           ),
                           Divider(),
                           _buildInfoRow(
+                            'Néon 1',
+                            provider.neon1Running ? 'Actif' : 'Inactif',
+                          ),
+                          Divider(),
+                          _buildInfoRow(
+                            'Néon 2',
+                            provider.neon2Running ? 'Actif' : 'Inactif',
+                          ),
+                          Divider(),
+                          _buildInfoRow(
                             'Plages programmées',
                             '${provider.neonSchedule.length}',
+                          ),
+                          Divider(),
+                          _buildInfoRow(
+                            'État LEDs',
+                            _ledStateText(provider.ledState),
+                          ),
+                          Divider(),
+                          _buildInfoRow(
+                            'Fonction LED',
+                            _ledFunctionText(provider.ledFunction),
+                          ),
+                          Divider(),
+                          _buildInfoRow(
+                            'Couleur LED',
+                            'RGB(${provider.ledColorR},${provider.ledColorG},${provider.ledColorB})',
+                          ),
+                          Divider(),
+                          _buildInfoRow(
+                            'Fréquence LED',
+                            '${provider.ledFrequency}',
                           ),
                           Divider(),
                           _buildInfoRow(
@@ -275,6 +299,13 @@ class AdvancedZone extends StatelessWidget {
                   ],
                 ),
               ),
+
+              SizedBox(height: 20),
+
+              // Terminal de debug
+              const BluetoothDataDisplay(),
+
+              SizedBox(height: 20),
             ],
           );
         },
@@ -313,6 +344,34 @@ class AdvancedZone extends StatelessWidget {
         return 'ON';
       case 2:
         return 'Programmation';
+      default:
+        return 'Inconnu';
+    }
+  }
+
+  String _ledStateText(int state) {
+    switch (state) {
+      case 0:
+        return 'OFF';
+      case 1:
+        return 'ON';
+      case 2:
+        return 'Suivi néons';
+      default:
+        return 'Inconnu';
+    }
+  }
+
+  String _ledFunctionText(int function) {
+    switch (function) {
+      case 1:
+        return 'Couleur unie';
+      case 2:
+        return 'Clignotant';
+      case 3:
+        return 'Fondu';
+      case 4:
+        return 'Arc-en-ciel';
       default:
         return 'Inconnu';
     }
